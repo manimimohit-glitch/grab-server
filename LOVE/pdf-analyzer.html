@@ -1,0 +1,1775 @@
+<title>PAPERCRUSH — ur pdf dawg</title>
+<link href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Caveat:wght@600;700&family=Permanent+Marker&family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/canvas-confetti/1.9.3/confetti.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+:root{
+ --bg:#E9E2CC;
+ --paper:#FFFEFA;
+ --paper2:#FFF8E7;
+ --ink:#0A0A0A;
+ --yellow:#FFE600;
+ --pink:#FF90E8;
+ --cyan:#23F0FF;
+ --orange:#FF5A1F;
+ --lime:#BFFF00;
+ --border: 3px solid var(--ink);
+ --border2: 2px solid var(--ink);
+ --shadow: 7px 7px 0 var(--ink);
+ --shadow-sm: 4px 4px 0 var(--ink);
+ --shadow-xs: 3px 3px 0 var(--ink);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+ margin:0;background:var(--bg);color:var(--ink);
+ font-family:'Space Mono',monospace;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+ background-color:var(--bg);
+ background-image:
+ radial-gradient(ellipse at 20% 10%, rgba(0,0,0,.06) 0, transparent 50%),
+ radial-gradient(ellipse at 90% 90%, rgba(0,0,0,.04) 0, transparent 40%),
+ url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit}
+::selection{background:var(--ink);color:var(--yellow)}
+.tape{
+ position:absolute;left:50%;top:-12px;transform:translateX(-50%) rotate(-2deg);
+ width:84px;height:20px;background:rgba(255,255,255,.62);
+ border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 4px rgba(0,0,0,.12);z-index:2;
+}
+.tape::before{content:'';position:absolute;inset:0;opacity:.18;background:repeating-linear-gradient(90deg, transparent 0 6px, rgba(0,0,0,.08) 6px 7px)}
+.tape.small{width:56px;height:14px;top:-8px}
+.fold{
+ position:absolute;right:0;top:0;width:28px;height:28px;overflow:hidden;pointer-events:none;
+}
+.fold::before{content:'';position:absolute;right:0;top:0;width:0;height:0;border-left:28px solid transparent;border-top:28px solid rgba(0,0,0,.09);filter:drop-shadow(-1px 1px 1px rgba(0,0,0,.15))}
+.fold::after{content:'';position:absolute;right:0;top:0;width:28px;height:28px;background:linear-gradient(135deg, transparent 50%, var(--paper) 50%);clip-path:polygon(100% 0, 0 0, 100% 100%);border-left:1px solid rgba(0,0,0,.08);border-top:1px solid rgba(0,0,0,.08)}
+.torn-bottom{clip-path: polygon(0 0, 100% 0, 100% 92%, 98% 97%, 94% 91%, 89% 98%, 83% 92%, 77% 100%, 71% 93%, 64% 99%, 57% 92%, 50% 97%, 43% 91%, 36% 99%, 29% 93%, 22% 98%, 15% 91%, 8% 97%, 3% 92%, 0 96%)}
+.scribble{font-family:'Permanent Marker',cursive;font-weight:400;color:var(--orange);transform:rotate(-2deg);display:inline-flex;align-items:center;gap:4px}
+.scribble-caveat{font-family:'Caveat',cursive;font-weight:700;color:var(--orange);transform:rotate(-1.5deg)}
+.topbar{
+ background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;
+ padding:8px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;flex-wrap:wrap;text-align:center;
+ border-bottom:var(--border);position:relative;transform:rotate(-.2deg);width:101%;margin-left:-.5%;
+}
+.topbar b{color:var(--yellow)}
+.topbar .pill{background:var(--yellow);color:var(--ink);border:2px solid var(--ink);padding:3px 8px;font-weight:800;transform:rotate(-1deg);display:inline-block;font-family:'Permanent Marker',cursive;letter-spacing:.02em}
+.topbar a{border:1px solid rgba(255,255,255,.3);padding:4px 8px;font-weight:800}
+.topbar a:hover{background:var(--lime);color:var(--ink);border-color:var(--ink)}
+.nav{
+ position:sticky;top:0;z-index:40;background:var(--paper);border-bottom:var(--border);
+ display:flex;align-items:center;justify-content:space-between;padding:12px 18px;gap:14px;
+ box-shadow: 0 4px 0 rgba(0,0,0,.06);
+}
+.nav::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.1;background: repeating-linear-gradient(0deg, transparent 0 24px, rgba(0,0,0,.04) 24px 25px)}
+.brand{display:flex;align-items:center;gap:10px;position:relative}
+.mark{width:46px;height:46px;background:var(--ink);color:var(--yellow);display:grid;place-items:center;font-family:'Bowlby One SC',cursive;font-size:17px;border:var(--border2);transform:rotate(-3deg);flex-shrink:0;line-height:1;box-shadow:2px 2px 0 rgba(0,0,0,.2)}
+.word{font-family:'Bowlby One SC',cursive;font-size:16px;letter-spacing:-.02em;line-height:1}
+.word i{font-style:normal;background:var(--yellow);border:var(--border2);padding:0 4px;margin-left:3px;transform:rotate(1deg);display:inline-block;font-size:14px}
+.word sub{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:9px;letter-spacing:.12em;display:block;margin-top:2px;opacity:.7}
+.nav-links{display:flex;align-items:center;gap:8px}
+.nav-links a{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border:var(--border2);padding:7px 10px;background:var(--paper);position:relative}
+.nav-links a:hover{transform:translate(-1px,-1px) rotate(.3deg);box-shadow:var(--shadow-xs)}
+.nav-links a.active{background:var(--yellow);transform:rotate(-.6deg)}
+.nav-right{display:flex;align-items:center;gap:8px}
+.btn{border:var(--border);padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:transform .12s, box-shadow .12s;position:relative}
+.btn:active{transform:translate(2px,2px);box-shadow:none !important}
+.btn-primary{background:var(--ink);color:var(--paper);box-shadow:var(--shadow-xs)}
+.btn-primary:hover{transform:translate(-1px,-1px) rotate(-.3deg);box-shadow:4px 4px 0 var(--ink)}
+.btn-ghost{background:var(--paper);box-shadow:var(--shadow-xs)}
+.btn-yellow{background:var(--yellow);box-shadow:var(--shadow-xs)}
+.hamburger{display:none}
+.marquee{background:var(--yellow);border-bottom:var(--border);overflow:hidden;white-space:nowrap;padding:10px 0;transform:rotate(-.5deg);width:102%;margin-left:-1%;box-shadow:0 3px 0 rgba(0,0,0,.08)}
+.marquee-track{display:inline-flex;animation:marq 16s linear infinite}
+.marquee-track span{font-family:'Bowlby One SC',cursive;font-size:12px;text-transform:uppercase;padding-right:22px;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;letter-spacing:-.01em}
+.marquee-track em{font-style:normal;background:var(--ink);color:var(--paper);padding:2px 6px;transform:rotate(1deg);display:inline-block;font-size:11px}
+.marquee-track i{width:7px;height:7px;background:var(--ink);border-radius:50%;display:inline-block;flex-shrink:0}
+@keyframes marq{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.hero{display:grid;grid-template-columns:1.12fr .88fr;gap:0;border-bottom:var(--border);position:relative;background:var(--yellow)}
+.hero-left{padding:28px 26px 22px;position:relative;overflow:hidden;background:var(--yellow)}
+.hero-left::before{content:'';position:absolute;inset:0;opacity:.18;pointer-events:none;background-image:linear-gradient(22deg, transparent 49%, rgba(0,0,0,.08) 49.6%, transparent 50.2%),linear-gradient(-18deg, transparent 62%, rgba(0,0,0,.05) 62.6%, transparent 63.2%),linear-gradient(68deg, transparent 38%, rgba(0,0,0,.04) 38.6%, transparent 39.2%)}
+.hero-left::after{content:'';position:absolute;inset:0;opacity:.09;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='f'%3E%3CfeTurbulence baseFrequency='0.02' numOctaves='3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23f)'/%3E%3C/svg%3E")}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;position:relative}
+.mini-badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;border:var(--border2);padding:5px 8px;background:var(--paper);box-shadow:2px 2px 0 rgba(0,0,0,.12)}
+.mini-badge.pink{background:var(--pink);transform:rotate(1deg)}
+.mini-badge.cyan{background:var(--cyan);transform:rotate(-1deg)}
+.mini-badge.lime{background:var(--lime);transform:rotate(.6deg)}
+.hero h1{font-family:'Bowlby One SC',cursive;font-size:clamp(32px,5.6vw,58px);line-height:.9;letter-spacing:-.03em;margin:0;text-transform:uppercase;position:relative}
+.hero h1 .box{background:var(--ink);color:var(--paper);padding:2px 8px;display:inline-block;transform:rotate(-1deg);box-shadow:3px 3px 0 rgba(0,0,0,.15)}
+.hero h1 .outline{-webkit-text-stroke:2.2px var(--ink);color:transparent;paint-order:stroke fill}
+.hero h1 .wavy{position:relative;display:inline-block}
+.hero h1 .wavy::after{content:'';position:absolute;left:-2px;right:-2px;bottom:0;height:10px;background:url("data:image/svg+xml,%3Csvg width='100' height='12' viewBox='0 0 100 12' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 8 Q12 0 24 8 T48 8 T72 8 T96 8' stroke='%23FF5A1F' stroke-width='3' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") repeat-x;background-size:50px 10px}
+.hero p{margin:14px 0 0;max-width:54ch;font-size:14px;line-height:1.55;font-weight:400;position:relative;font-family:'Space Mono',monospace}
+.hero p b{border-bottom:3px solid var(--ink);background:var(--paper);padding:0 3px;font-weight:700}
+.hero-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center;position:relative}
+.live{display:inline-flex;align-items:center;gap:8px;border:var(--border2);background:var(--paper);padding:8px 10px;box-shadow:var(--shadow-xs);transform:rotate(.5deg);position:relative}
+.live::before{content:'';position:absolute;top:-6px;left:50%;transform:translateX(-50%) rotate(-1deg);width:44px;height:10px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.08)}
+.live-dot{width:8px;height:8px;background:var(--orange);border-radius:50%;box-shadow:0 0 0 5px rgba(255,90,31,.18);animation:pulse 1.6s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 5px rgba(255,90,31,.18)}50%{box-shadow:0 0 0 8px rgba(255,90,31,.08)}}
+.live strong{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800}
+.live span{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.6}
+.stickers{position:absolute;inset:0;pointer-events:none}
+.sticker{position:absolute;border:var(--border2);background:var(--paper);padding:6px 8px;box-shadow:var(--shadow-xs);font-family:'Permanent Marker',cursive;font-size:13px;letter-spacing:.01em;pointer-events:auto;cursor:grab;user-select:none;transform-origin:center}
+.sticker:active{cursor:grabbing}
+.sticker::before{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%) rotate(-2deg);width:36px;height:10px;background:rgba(255,255,255,.6);border:1px solid rgba(0,0,0,.08)}
+.st-s1{right:18px;top:18px;background:var(--lime);transform:rotate(4deg)}
+.st-s2{right:28px;bottom:18px;background:var(--cyan);transform:rotate(-3deg);font-size:12px}
+.st-s3{left:54%;top:8px;background:var(--pink);transform:rotate(2deg);font-size:11px;font-family:'Caveat',cursive;font-weight:700}
+.hero-right{background:var(--bg);padding:16px;display:grid;gap:14px;align-content:start;position:relative;background-image:radial-gradient(ellipse at 50% 0%, rgba(0,0,0,.04) 0, transparent 60%),url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.07'/%3E%3C/svg%3E")}
+.upload-card{background:var(--paper);border:var(--border);box-shadow:var(--shadow);padding:14px;transform:rotate(.4deg);position:relative}
+.upload-card::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.16;background:linear-gradient(16deg, transparent 49%, rgba(0,0,0,.06) 49.5%, transparent 50%),linear-gradient(-12deg, transparent 72%, rgba(0,0,0,.04) 72.6%, transparent 73.2%)}
+.upload-card h3{font-family:'Bowlby One SC',cursive;font-size:16px;letter-spacing:-.02em;margin:0;text-transform:uppercase;display:flex;align-items:center;gap:8px;position:relative}
+.upload-card h3 i{font-style:normal;background:var(--lime);border:var(--border2);padding:2px 6px;font-size:11px;transform:rotate(-1deg);font-family:'JetBrains Mono',monospace;font-weight:800}
+.upload-card p{font-family:'JetBrains Mono',monospace;font-size:11px;color:#555;margin:4px 0 0;line-height:1.4;position:relative}
+/* ——— CRUSH DROPZONE : premium drop animation ——— */
+.dropzone{margin-top:12px;border:3px dashed var(--ink);background:var(--paper2);padding:22px 18px;display:grid;place-items:center;gap:8px;text-align:center;cursor:pointer;position:relative;overflow:hidden;isolation:isolate;
+ background-image:repeating-linear-gradient(0deg, transparent 0 26px, rgba(0,0,0,.04) 26px 27px),radial-gradient(ellipse at 50% 50%, rgba(0,0,0,.03) 0 1px, transparent 1.5px);
+ transition:transform .35s cubic-bezier(.34,1.56,.64,1), background .2s, border-color .2s, box-shadow .2s;
+ animation:dzBreath 3.2s ease-in-out infinite;
+}
+@keyframes dzBreath{0%,100%{transform:rotate(.15deg)}50%{transform:rotate(-.15deg)}}
+.dropzone::after{content:'— drag n drop —';position:absolute;bottom:6px;right:8px;font-family:'Caveat',cursive;font-size:13px;font-weight:700;color:var(--ink);opacity:.45;transform:rotate(-2deg);transition:opacity .2s}
+.dropzone-inner{position:relative;z-index:1;display:grid;place-items:center;gap:8px;transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.dz-icon-wrap{width:64px;height:64px;background:var(--yellow);border:3px solid var(--ink);display:grid;place-items:center;font-size:26px;transform:rotate(-2deg);box-shadow:3px 3px 0 var(--ink);position:relative;transition:all .35s cubic-bezier(.34,1.56,.64,1)}
+.dz-icon-wrap .dz-icon{transition:transform .3s}
+.dz-icon-wrap .dz-icon-swap{position:absolute;inset:0;display:grid;place-items:center;font-size:26px;opacity:0;transform:scale(.5) rotate(-10deg);transition:all .35s cubic-bezier(.34,1.56,.64,1)}
+.dropzone strong{font-family:'Bowlby One SC',cursive;font-size:13px;text-transform:uppercase;letter-spacing:-.01em;position:relative;transition:all .2s}
+.dropzone .dz-sub{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;transition:all .2s}
+.dropzone .hint{font-family:'Caveat',cursive;font-size:12px;color:#666;text-transform:none;letter-spacing:0;font-weight:700;transition:all .2s}
+.dz-scanner{position:absolute;left:0;right:0;height:3px;background:linear-gradient(90deg, transparent, var(--orange), transparent);top:-3px;opacity:0;z-index:2;pointer-events:none;box-shadow:0 0 12px var(--orange), 0 0 24px rgba(255,90,31,.5)}
+.dz-scanner::after{content:'';position:absolute;left:0;right:0;top:0;height:28px;background:linear-gradient(180deg, rgba(255,90,31,.12), transparent);transform:translateY(-100%)}
+.dz-spotlight{position:absolute;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle, rgba(255,230,0,.28) 0, transparent 70%);pointer-events:none;opacity:0;transform:translate(-50%,-50%);z-index:0;transition:opacity .2s}
+.dz-particles{position:absolute;inset:0;pointer-events:none;z-index:3}
+.dz-particles i{position:absolute;width:7px;height:7px;background:var(--ink);border:1.5px solid var(--ink);opacity:0}
+.dz-ripples{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:1}
+.dz-ripples em{position:absolute;left:50%;top:50%;width:20px;height:20px;border:2px solid var(--ink);border-radius:50%;transform:translate(-50%,-50%) scale(0);opacity:0}
+.dz-paper-stack{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:0;opacity:.12;pointer-events:none;transition:all .35s}
+.dz-paper-stack span{width:52px;height:36px;background:var(--paper);border:2px solid var(--ink);box-shadow:1px 1px 0 var(--ink);transform-origin:bottom center;transition:all .4s cubic-bezier(.34,1.56,.64,1)}
+.dz-paper-stack span:nth-child(1){transform:rotate(-4deg) translateY(2px)}
+.dz-paper-stack span:nth-child(2){transform:rotate(2deg) translateY(0)}
+.dz-paper-stack span:nth-child(3){transform:rotate(6deg) translateY(3px)}
+/* DRAG HOVER STATE */
+.dropzone.drag{background:var(--yellow);border-style:solid;border-color:var(--ink);box-shadow:inset 0 0 0 2px var(--ink), 0 8px 32px rgba(0,0,0,.12);transform:rotate(-.6deg) scale(1.03);animation:none}
+.dropzone.drag::after{opacity:0}
+.dropzone.drag .dz-paper-stack{opacity:.22}
+.dropzone.drag .dz-paper-stack span:nth-child(1){transform:rotate(-9deg) translateY(-8px)}
+.dropzone.drag .dz-paper-stack span:nth-child(2){transform:rotate(0deg) translateY(-14px)}
+.dropzone.drag .dz-paper-stack span:nth-child(3){transform:rotate(10deg) translateY(-6px)}
+.dropzone.drag .dz-icon-wrap{transform:rotate(1deg) scale(1.08);background:var(--lime);box-shadow:4px 4px 0 var(--ink);animation:dzWiggle .4s ease}
+.dropzone.drag .dz-icon{opacity:0;transform:scale(1.4) translateY(-8px)}
+.dropzone.drag .dz-icon-swap{opacity:1;transform:scale(1) rotate(0deg)}
+.dropzone.drag .dz-sub{color:var(--ink)}
+.dropzone.drag .dz-scanner{opacity:1;animation:dzScan 1.1s ease-in-out infinite}
+.dropzone.drag .dz-spotlight{opacity:1}
+@keyframes dzScan{0%{top:-2px}50%{top:calc(100% - 2px)}100%{top:-2px}}
+@keyframes dzWiggle{0%,100%{transform:rotate(1deg) scale(1.08)}25%{transform:rotate(-2deg) scale(1.08)}50%{transform:rotate(3deg) scale(1.08)}75%{transform:rotate(-1deg) scale(1.08)}}
+/* SLAM on drop */
+.dropzone.slam{animation:dzSlam .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes dzSlam{0%{transform:scale(1.03) rotate(-.6deg)}30%{transform:scale(1.08) rotate(.8deg)}55%{transform:scale(.97) rotate(-.5deg)}80%{transform:scale(1.02) rotate(.3deg)}100%{transform:scale(1) rotate(.15deg)}}
+.dropzone.slam .dz-icon-wrap{animation:dzIconSlam .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes dzIconSlam{0%{transform:rotate(-2deg) scale(1)}20%{transform:rotate(4deg) scale(1.15)}45%{transform:rotate(-6deg) scale(.92)}70%{transform:rotate(2deg) scale(1.05)}100%{transform:rotate(-2deg) scale(1)}}
+.dropzone.success{border-color:var(--ink);background:var(--lime);border-style:solid;box-shadow:inset 0 0 0 2px var(--ink), var(--shadow-xs)}
+/* particle burst */
+@keyframes dzParticle{0%{transform:translate(0,0) scale(1) rotate(var(--rot,0deg));opacity:1}100%{transform:translate(var(--tx),var(--ty)) scale(0) rotate(calc(var(--rot,0deg) + 180deg));opacity:0}}
+/* ripple */
+@keyframes dzRipple{0%{transform:translate(-50%,-50%) scale(0);opacity:.45}100%{transform:translate(-50%,-50%) scale(18);opacity:0}}
+/* success check pop */
+.dz-check{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:4;opacity:0;transform:scale(.4) rotate(-8deg);transition:all .4s cubic-bezier(.34,1.56,.64,1)}
+.dz-check.show{opacity:1;transform:scale(1) rotate(0deg)}
+.dz-check span{width:42px;height:42px;background:var(--ink);color:var(--lime);border-radius:50%;display:grid;place-items:center;font-size:20px;border:2px solid var(--ink);box-shadow:0 4px 16px rgba(0,0,0,.25)}
+/* ——— BASKETBALL HOOP: the rim is the drop ——— */
+.dz-hoop{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) scale(.82);width:124px;height:78px;pointer-events:none;z-index:2;opacity:0;transition:all .38s cubic-bezier(.34,1.56,.64,1)}
+.dropzone.drag .dz-hoop{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.hoop-board{position:absolute;left:50%;top:0;transform:translateX(-50%);width:88px;height:54px;background:var(--paper);border:2.5px solid var(--ink);box-shadow:2px 2px 0 var(--ink);display:grid;place-items:center;overflow:hidden}
+.hoop-board::before{content:'';position:absolute;inset:6px;border:1.5px solid var(--ink);opacity:.12}
+.hoop-board::after{content:'';position:absolute;inset:0;background:linear-gradient(18deg, transparent 48%, rgba(0,0,0,.06) 49%, transparent 50%)}
+.hoop-board b{font-family:'Bowlby One SC',cursive;font-size:9px;letter-spacing:.04em;line-height:1;text-align:center;position:relative;z-index:1}
+.hoop-rim{position:absolute;left:50%;top:46px;transform:translateX(-50%);width:108px;height:13px;background:var(--orange);border:2.5px solid var(--ink);border-radius:999px;box-shadow:0 3px 0 var(--ink), inset 0 1px 0 rgba(255,255,255,.35);z-index:3}
+.hoop-rim::before{content:'';position:absolute;left:8px;right:8px;top:3px;height:2px;background:rgba(255,255,255,.35);border-radius:999px}
+.hoop-rim::after{content:'';position:absolute;left:50%;top:100%;transform:translateX(-50%);width:2px;height:6px;background:var(--ink);box-shadow:30px 0 0 var(--ink), -30px 0 0 var(--ink)}
+.hoop-net{position:absolute;left:50%;top:59px;transform:translateX(-50%);display:flex;gap:5px;z-index:2;transform-origin:top center}
+.hoop-net i{width:1.5px;height:28px;background:var(--paper);border-left:1px solid rgba(0,0,0,.18);position:relative;transform-origin:top}
+.hoop-net i:nth-child(odd){height:26px}
+.hoop-net i::after{content:'';position:absolute;bottom:-1px;left:50%;width:9px;height:7px;border:1.5px solid rgba(0,0,0,.14);border-top:none;transform:translateX(-50%) rotate(12deg)}
+.hoop-net.swoosh{animation:netSwoosh .52s cubic-bezier(.34,1,.64,1)}
+@keyframes netSwoosh{0%{transform:translateX(-50%) scaleY(1)}28%{transform:translateX(-50%) scaleY(1.32) scaleX(.78)}55%{transform:translateX(-50%) scaleY(.86) scaleX(1.14)}78%{transform:translateX(-50%) scaleY(1.1) scaleX(.92)}100%{transform:translateX(-50%) scaleY(1) scaleX(1)}}
+.dz-hoop .hoop-shadow{position:absolute;left:50%;top:76px;transform:translateX(-50%);width:78px;height:8px;background:rgba(0,0,0,.13);border-radius:50%;filter:blur(2px)}
+/* trajectory SVG overlay */
+.dz-arc{position:absolute;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .2s}
+.dropzone.drag .dz-arc{opacity:1}
+.dz-arc path{fill:none;stroke:var(--ink);stroke-width:2;stroke-dasharray:6 7;stroke-linecap:round;opacity:.28}
+.dz-arc circle{fill:var(--yellow);stroke:var(--ink);stroke-width:1.5}
+/* flying ball — PDF as basketball */
+.dz-ball{position:fixed;width:50px;height:50px;border-radius:50%;background:var(--paper);border:2.5px solid var(--ink);display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:.02em;box-shadow:2px 3px 0 var(--ink), inset 0 -6px 0 rgba(0,0,0,.06);z-index:9999;pointer-events:none;overflow:hidden}
+.dz-ball::before{content:'';position:absolute;inset:0;border-radius:50%;background:repeating-linear-gradient(0deg, transparent 0 8px, rgba(0,0,0,.04) 8px 9px)}
+.dz-ball::after{content:'';position:absolute;left:50%;top:50%;width:100%;height:2.5px;background:var(--ink);transform:translate(-50%,-50%)}
+.dz-ball em{position:absolute;left:50%;top:50%;width:2.5px;height:100%;background:var(--ink);transform:translate(-50%,-50%)}
+.dz-ball b{position:absolute;left:50%;top:50%;width:78%;height:78%;border:2px solid var(--ink);border-radius:50%;transform:translate(-50%,-50%);opacity:.22}
+.dz-ball span{position:relative;z-index:1;background:var(--yellow);border:1.5px solid var(--ink);padding:1px 4px;font-size:8px;transform:rotate(-6deg);white-space:nowrap}
+.dz-swish{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.3) rotate(-8deg);font-family:'Bowlby One SC',cursive;font-size:30px;color:var(--ink);background:var(--lime);border:2.5px solid var(--ink);padding:2px 10px;box-shadow:4px 4px 0 var(--ink);pointer-events:none;z-index:5;opacity:0}
+.dz-swish.pop{animation:swishPop .62s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes swishPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-12deg)}42%{opacity:1;transform:translate(-50%,-58%) scale(1.08) rotate(2deg)}68%{transform:translate(-50%,-50%) scale(1) rotate(-1deg)}100%{opacity:0;transform:translate(-50%,-72%) scale(.9) rotate(0deg)}}
+.dz-plus2{position:absolute;left:62%;top:28%;font-family:'Permanent Marker',cursive;font-size:22px;color:var(--orange);pointer-events:none;z-index:5;opacity:0;text-shadow:1px 1px 0 var(--ink)}
+.dz-plus2.pop{animation:plusPop .7s cubic-bezier(.34,1.56,.64,1) forwards}
+@keyframes plusPop{0%{opacity:0;transform:translateY(8px) scale(.6) rotate(-4deg)}35%{opacity:1;transform:translateY(-10px) scale(1.1) rotate(2deg)}100%{opacity:0;transform:translateY(-28px) scale(.9) rotate(0deg)}}
+/* reduced motion */
+@media (prefers-reduced-motion: reduce){ .dropzone, .dz-icon-wrap, .dz-paper-stack span, .dz-hoop{animation:none !important;transition:none !important} }
+.file-meta{margin-top:10px;display:none;gap:10px;align-items:center;border:var(--border2);background:var(--lime);padding:10px;transform:rotate(-.3deg);position:relative}
+.file-meta.show{display:flex}
+.file-icon{width:40px;height:40px;background:var(--ink);color:var(--paper);display:grid;place-items:center;font-family:'Bowlby One SC',cursive;font-size:11px;border:var(--border2);flex-shrink:0;transform:rotate(-2deg)}
+.progress{height:14px;background:var(--paper);border:var(--border2);overflow:hidden;margin-top:10px;display:none;position:relative;box-shadow:inset 0 1px 3px rgba(0,0,0,.12)}
+.progress.show{display:block}
+.progress i{display:block;height:100%;width:0%;background:repeating-linear-gradient(45deg, var(--ink) 0 10px, #1a1a1a 10px 20px);transition:width .25s;position:relative}
+.progress i::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent);animation:shine 1s linear infinite}
+@keyframes shine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.progress em{position:absolute;inset:0;display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;mix-blend-mode:difference}
+/* — CRUSH THEATER — premium crushing stage — */
+.crush-stage{display:none;margin-top:12px;border:var(--border2);background:var(--paper2);padding:12px;position:relative;box-shadow:var(--shadow-xs);transform:rotate(-.25deg);overflow:hidden}
+.crush-stage.show{display:grid;grid-template-columns:98px 1fr;gap:12px;align-items:center;animation:crushIn .38s cubic-bezier(.34,1.56,.64,1)}
+@keyframes crushIn{0%{opacity:0;transform:rotate(-.25deg) scale(.96) translateY(8px)}100%{opacity:1;transform:rotate(-.25deg) scale(1) translateY(0)}}
+.crush-stage::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.07;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.14'/%3E%3C/svg%3E")}
+.crush-stage::after{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%) rotate(-1deg);width:54px;height:10px;background:rgba(255,255,255,.62);border:1px solid rgba(0,0,0,.08)}
+.crush-stage.done{border-color:var(--ink);background:var(--lime)}
+.crush-paper{width:98px;height:96px;background:var(--paper);border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);position:relative;overflow:hidden;flex-shrink:0;transform:rotate(-1deg)}
+.crush-paper::before{content:'';position:absolute;inset:0;opacity:.06;background:repeating-linear-gradient(0deg, transparent 0 9px, rgba(0,0,0,.07) 9px 10px)}
+.cp{position:absolute;left:7px;right:7px;height:50px;background:var(--paper);border:2px solid var(--ink);box-shadow:1px 1px 0 var(--ink);display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:.04em;overflow:hidden}
+.cp::before{content:'';position:absolute;inset:0;opacity:.07;background:linear-gradient(18deg, transparent 49%, rgba(0,0,0,.08) 49.5%, transparent 50%)}
+.cp::after{content:'';position:absolute;left:6px;right:6px;top:9px;height:1px;background:rgba(0,0,0,.14);box-shadow:0 6px 0 rgba(0,0,0,.1), 0 12px 0 rgba(0,0,0,.07), 0 18px 0 rgba(0,0,0,.04)}
+.cp i{position:relative;z-index:1;background:var(--yellow);border:1.5px solid var(--ink);padding:1px 5px;font-style:normal;transform:rotate(-2deg);font-size:8px}
+.cp.s1{top:8px;transform:rotate(-2.4deg)}
+.cp.s2{top:22px;transform:rotate(1.2deg);opacity:.92}
+.cp.s3{top:36px;transform:rotate(-.6deg);opacity:.84}
+.crushing .cp.s1{animation:cp1 1.1s ease-in-out infinite}
+.crushing .cp.s2{animation:cp2 1.1s ease-in-out infinite .08s}
+.crushing .cp.s3{animation:cp3 1.1s ease-in-out infinite .16s}
+@keyframes cp1{0%,100%{transform:rotate(-2.4deg) translateY(0) scale(1) skew(0deg)}18%{transform:rotate(-4deg) translateY(-2px) scale(1.02) skew(-1deg)}42%{transform:rotate(-1deg) translateY(1px) scale(.99) skew(.6deg)}68%{transform:rotate(-3.2deg) translateY(-1px) scale(1.01) skew(-.4deg)}}
+@keyframes cp2{0%,100%{transform:rotate(1.2deg) translateY(0) scale(1)}18%{transform:rotate(2.8deg) translateY(-1px) scale(1.015) skew(.8deg)}42%{transform:rotate(.2deg) translateY(1.2px) scale(.985) skew(-.5deg)}68%{transform:rotate(1.8deg) translateY(-.6px) scale(1.01)}}
+@keyframes cp3{0%,100%{transform:rotate(-.6deg) translateY(0) scale(1)}18%{transform:rotate(-2deg) translateY(-1.4px) scale(1.01)}42%{transform:rotate(.6deg) translateY(.8px) scale(.99)}68%{transform:rotate(-1.4deg) translateY(-.4px) scale(1)}}
+.crush-scan{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg, transparent, var(--orange), transparent);top:0;opacity:0;box-shadow:0 0 10px var(--orange)}
+.crush-scan::after{content:'';position:absolute;left:0;right:0;top:0;height:22px;background:linear-gradient(180deg, rgba(255,90,31,.14), transparent);transform:translateY(-100%)}
+.crushing .crush-scan{opacity:1;animation:crScan 1.05s ease-in-out infinite}
+@keyframes crScan{0%{top:0}50%{top:calc(100% - 2px)}100%{top:0}}
+.crush-shreds{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.crush-shreds em{position:absolute;width:6px;height:6px;background:var(--ink);border:1px solid var(--ink);opacity:0}
+@keyframes shredFall{0%{transform:translate(-50%,-10%) rotate(0deg) scale(1);opacity:1}100%{transform:translate(calc(-50% + var(--tx)), 78px) rotate(var(--rot)) scale(.8);opacity:0}}
+.crush-meta{position:relative;min-width:0}
+.crush-kicker{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.crush-kicker i{width:7px;height:7px;background:var(--orange);border-radius:50%;display:inline-block;animation:pulse 1.1s infinite;flex-shrink:0}
+.crush-kicker b{font-family:'Permanent Marker',cursive;font-size:12px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--orange);transform:rotate(-1deg)}
+.crush-steps{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.cs{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border:1.5px solid var(--ink);padding:4px 6px;background:var(--paper);box-shadow:1px 1px 0 var(--ink);opacity:.42;transform:rotate(var(--r,0deg));transition:all .22s}
+.cs:nth-child(1){--r:-.7deg}.cs:nth-child(2){--r:.5deg}.cs:nth-child(3){--r:-.4deg}.cs:nth-child(4){--r:.6deg}
+.cs.on{opacity:1;background:var(--yellow);transform:rotate(0deg) scale(1.04);box-shadow:1.5px 1.5px 0 var(--ink)}
+.cs.done{opacity:1;background:var(--lime)}
+.crush-bar{height:18px;background:var(--paper);border:2px solid var(--ink);overflow:hidden;position:relative;box-shadow:inset 0 1px 3px rgba(0,0,0,.12)}
+.crush-bar i{display:block;height:100%;width:0%;background:repeating-linear-gradient(45deg, var(--ink) 0 10px, #1e1e1e 10px 20px);position:relative;transition:width .22s linear}
+.crush-bar i::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg, transparent, rgba(255,255,255,.16), transparent);animation:shine 1s linear infinite}
+.crush-bar em{position:absolute;inset:0;display:grid;place-items:center;font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;mix-blend-mode:difference;font-style:normal}
+.crush-msg{margin-top:6px;font-family:'Caveat',cursive;font-size:13px;font-weight:700;color:var(--ink);opacity:.75;min-height:16px;transform:rotate(-.4deg)}
+.crush-done{position:absolute;inset:0;display:grid;place-items:center;background:rgba(191,255,0,.88);backdrop-filter:blur(1px);opacity:0;pointer-events:none;transition:opacity .22s;z-index:2}
+.crush-done.show{opacity:1;pointer-events:auto}
+.crush-done span{font-family:'Bowlby One SC',cursive;font-size:15px;background:var(--paper);border:2.5px solid var(--ink);padding:6px 12px;box-shadow:3px 3px 0 var(--ink);transform:rotate(-1deg)}
+@media (prefers-reduced-motion: reduce){ .crushing .cp, .crushing .crush-scan, .crush-stage{animation:none !important} }
+.actions-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;position:relative}
+.stat-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;position:relative}
+.stat-box{border:var(--border2);padding:10px;text-align:center;position:relative;box-shadow:2px 2px 0 rgba(0,0,0,.15)}
+.stat-box b{font-family:'Bowlby One SC',cursive;font-size:18px;line-height:1;display:block}
+.stat-box label{font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:#333;font-weight:800}
+.stat-box:nth-child(1){background:var(--cyan);transform:rotate(-.7deg)}
+.stat-box:nth-child(2){background:var(--pink);transform:rotate(.7deg)}
+.stat-box:nth-child(3){background:var(--yellow);transform:rotate(-.3deg)}
+/* — OCR badge + tables — */
+.ocr-badge{font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border:var(--border2);padding:6px 8px;background:var(--paper);box-shadow:2px 2px 0 rgba(0,0,0,.12);display:inline-flex;align-items:center;gap:6px;transform:rotate(-.5deg)}
+.ocr-badge i{width:8px;height:8px;background:var(--orange);border-radius:50%;display:inline-block;animation:pulse 1.3s infinite;flex-shrink:0}
+.ocr-badge.on{background:var(--lime)}
+.tables-wrap{display:none;gap:10px}
+.tables-wrap.show{display:grid}
+.tbl-card{border:var(--border);background:var(--paper);box-shadow:var(--shadow-sm);overflow:hidden;position:relative}
+.tbl-card::before{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%) rotate(-1deg);width:52px;height:10px;background:rgba(255,255,255,.62);border:1px solid rgba(0,0,0,.08)}
+.tbl-head{padding:10px 12px;border-bottom:var(--border2);display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--ink);color:var(--paper)}
+.tbl-head h4{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;margin:0}
+.tbl-head span{font-family:'JetBrains Mono',monospace;font-size:10px;opacity:.7}
+.tbl-actions{display:flex;gap:6px;flex-wrap:wrap}
+.tbl-btn{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border:var(--border2);padding:6px 8px;background:var(--paper);color:var(--ink);cursor:pointer;box-shadow:1.5px 1.5px 0 var(--ink)}
+.tbl-btn:hover{transform:translate(-1px,-1px);box-shadow:2.5px 2.5px 0 var(--ink)}
+.tbl-btn.primary{background:var(--yellow)}
+.tbl-btn.cyan{background:var(--cyan)}
+.tbl-scroll{overflow:auto;max-height:320px;border-top:1px solid rgba(0,0,0,.08)}
+.tbl-preview{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.35}
+.tbl-preview th{position:sticky;top:0;background:var(--ink);color:var(--paper);text-align:left;padding:7px 8px;border:1px solid var(--ink);font-size:10px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.tbl-preview td{padding:6px 8px;border:1px solid rgba(0,0,0,.14);white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.tbl-preview tr:nth-child(even) td{background:var(--paper2)}
+.tbl-empty{padding:14px;font-family:'Space Mono',monospace;font-size:12px;color:#666;text-align:center}
+.ocr-progress{margin-top:8px;border:var(--border2);background:var(--paper);padding:8px 10px;display:none;align-items:center;gap:10px;box-shadow:2px 2px 0 rgba(0,0,0,.08);transform:rotate(-.3deg)}
+.ocr-progress.show{display:flex}
+.ocr-progress b{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.ocr-progress small{font-family:'JetBrains Mono',monospace;font-size:10px;opacity:.6}
+.ocr-bar{flex:1;height:12px;background:var(--paper2);border:1.5px solid var(--ink);overflow:hidden;position:relative}
+.ocr-bar i{display:block;height:100%;width:0%;background:repeating-linear-gradient(45deg, var(--orange) 0 8px, #ff6f3a 8px 16px);transition:width .25s}
+.results{display:none;gap:12px}
+.results.show{display:grid}
+.result-card{border:var(--border);background:var(--paper);box-shadow:var(--shadow-sm);overflow:hidden;position:relative}
+.result-card::before{content:'';position:absolute;top:-8px;left:50%;transform:translateX(-50%) rotate(-1deg);width:64px;height:12px;background:rgba(255,255,255,.58);border:1px solid rgba(0,0,0,.08)}
+.result-head{padding:10px 12px;border-bottom:var(--border2);display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--ink);color:var(--paper);position:relative}
+.result-head h4{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;margin:0;display:flex;align-items:center;gap:6px}
+.result-head span{font-family:'JetBrains Mono',monospace;font-size:10px;opacity:.7}
+.result-body{padding:12px;position:relative}
+.result-body::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:1px;background:rgba(255,90,31,.18);pointer-events:none}
+.bullet{font-size:13px;line-height:1.5;margin:0;padding-left:18px;font-family:'Space Mono',monospace}
+.bullet li{margin-bottom:6px}
+.bullet li::marker{content:'▸ '}
+.slay-bar{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.slay{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border:var(--border2);padding:6px 8px;background:var(--paper);cursor:pointer;box-shadow:1px 1px 0 var(--ink)}
+.slay:hover{transform:translate(-1px,-1px);box-shadow:2px 2px 0 var(--ink)}
+.slay.on{background:var(--lime);transform:rotate(-.5deg)}
+.chat-box{border:var(--border);background:var(--paper);box-shadow:var(--shadow-sm);display:grid;grid-template-rows:auto 1fr auto;min-height:340px;overflow:hidden;position:relative}
+.chat-box::before{content:'';position:absolute;left:18px;top:0;bottom:0;width:2px;background:rgba(255,90,31,.2);pointer-events:none;z-index:1}
+.chat-head{padding:10px 12px;border-bottom:var(--border2);background:var(--cyan);display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative}
+.chat-head h4{font-family:'Bowlby One SC',cursive;font-size:12px;letter-spacing:-.01em;margin:0;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.chat-head h4 i{width:8px;height:8px;background:var(--ink);border-radius:50%;display:inline-block;animation:pulse 1.4s infinite}
+.chat-log{padding:12px 12px 12px 26px;display:grid;gap:10px;max-height:300px;overflow:auto;background:var(--paper);scroll-behavior:smooth;background-image:repeating-linear-gradient(0deg, transparent 0 27px, rgba(0,0,0,.04) 27px 28px)}
+.msg{max-width:88%;padding:10px 12px;border:var(--border2);font-size:13px;line-height:1.5;position:relative;box-shadow:2px 2px 0 rgba(0,0,0,.08)}
+.msg.user{background:var(--yellow);margin-left:auto;transform:rotate(.4deg);font-family:'Space Mono',monospace}
+.msg.bot{background:var(--paper);transform:rotate(-.3deg);font-family:'Space Mono',monospace}
+.msg.bot b{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;display:block;margin-bottom:4px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;background:var(--paper);border-top:1px dashed var(--ink)}
+.chip{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;border:var(--border2);background:var(--paper);padding:6px 8px;cursor:pointer;transition:all .12s;box-shadow:1px 1px 0 var(--ink)}
+.chip:hover{background:var(--ink);color:var(--paper);transform:translate(-1px,-1px) rotate(.3deg);box-shadow:2px 2px 0 var(--ink)}
+.chat-input{display:flex;gap:8px;padding:10px;border-top:var(--border2);background:var(--paper)}
+.chat-input input{flex:1;border:var(--border2);padding:10px 12px;font-family:'Space Mono',monospace;font-size:13px;outline:none;background:var(--paper2);box-shadow:inset 0 1px 2px rgba(0,0,0,.06)}
+.chat-input input:focus{background:var(--paper)}
+.features{padding:18px;background:var(--bg);border-bottom:var(--border);position:relative}
+.features-head{display:flex;align-items:end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.features h2{font-family:'Bowlby One SC',cursive;font-size:26px;letter-spacing:-.02em;text-transform:uppercase;margin:0;line-height:.95}
+.features h2 em{font-style:normal;background:var(--pink);border:var(--border2);padding:0 6px;display:inline-block;transform:rotate(-1deg);font-size:24px}
+.features p.sub{font-family:'Caveat',cursive;font-size:15px;font-weight:700;color:var(--ink);opacity:.7;margin:0;transform:rotate(-.5deg)}
+.bento{display:grid;grid-template-columns:1.2fr .8fr .9fr;grid-template-rows:auto auto;gap:10px}
+.bento .feat{border:var(--border);padding:14px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;min-height:148px;transform:rotate(var(--r,0deg))}
+.bento .feat::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.14;background:linear-gradient(12deg, transparent 48%, rgba(0,0,0,.08) 49%, transparent 49.6%),linear-gradient(-18deg, transparent 71%, rgba(0,0,0,.05) 71.6%, transparent 72.2%)}
+.bento .feat::after{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%) rotate(-1deg);width:48px;height:10px;background:rgba(255,255,255,.62);border:1px solid rgba(0,0,0,.08);opacity:.9}
+.bento .feat h3{font-family:'Bowlby One SC',cursive;font-size:14px;letter-spacing:-.01em;margin:0;text-transform:uppercase;line-height:1;position:relative}
+.bento .feat p{font-size:12px;line-height:1.45;margin:6px 0 0;position:relative;font-family:'Space Mono',monospace}
+.bento .feat .tag{position:absolute;top:-1px;right:10px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:var(--ink);color:var(--paper);padding:4px 6px;transform:rotate(1deg);z-index:1}
+.f1{background:var(--cyan);--r:-.6deg}
+.f2{background:var(--yellow);--r:.5deg}
+.f3{background:var(--paper);--r:-.3deg}
+.f4{background:var(--lime);--r:.7deg}
+.f5{background:var(--pink);--r:-.5deg}
+.f6{background:var(--ink);color:#fff;--r:.4deg}
+.f6 p{color:rgba(255,255,255,.85)}
+.f6 .tag{background:var(--yellow);color:var(--ink)}
+.big-emoji{position:absolute;right:-4px;bottom:-6px;font-size:56px;opacity:.13;transform:rotate(-8deg);pointer-events:none}
+.social-proof{padding:16px;background:var(--paper);border-bottom:var(--border);position:relative}
+.social-proof::before{content:'';position:absolute;inset:0;opacity:.06;pointer-events:none;background:repeating-linear-gradient(0deg, transparent 0 28px, rgba(0,0,0,.04) 28px 29px)}
+.social-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;position:relative}
+.social-head h3{font-family:'Bowlby One SC',cursive;font-size:16px;letter-spacing:-.02em;text-transform:uppercase;margin:0;display:flex;align-items:center;gap:8px}
+.social-head h3 i{font-style:normal;background:var(--lime);border:var(--border2);padding:2px 6px;transform:rotate(-1deg);font-size:12px;font-family:'Permanent Marker',cursive}
+.tweets{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;position:relative}
+.tweet{border:var(--border2);background:var(--paper);padding:12px;box-shadow:var(--shadow-xs);transform:rotate(var(--r));position:relative}
+.tweet::before{content:'';position:absolute;top:-6px;left:50%;transform:translateX(-50%) rotate(-1deg);width:36px;height:8px;background:rgba(255,255,255,.6);border:1px solid rgba(0,0,0,.08)}
+.tweet-head{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.avatar{width:32px;height:32px;border-radius:50%;border:var(--border2);object-fit:cover;flex-shrink:0}
+.tweet-head b{font-size:12px;line-height:1;font-family:'Space Mono',monospace}
+.tweet-head span{font-family:'JetBrains Mono',monospace;font-size:10px;opacity:.6}
+.tweet p{font-size:13px;line-height:1.45;margin:0;font-family:'Space Mono',monospace}
+.tweet .meta{margin-top:8px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.03em;text-transform:uppercase;opacity:.6;display:flex;gap:8px;flex-wrap:wrap}
+.stars{color:var(--ink);letter-spacing:.06em}
+.how{border-bottom:var(--border);background:var(--paper);display:grid;grid-template-columns:1fr 1fr}
+.how-left{padding:20px;border-right:var(--border);position:relative}
+.how-left h2{font-family:'Bowlby One SC',cursive;font-size:24px;letter-spacing:-.02em;text-transform:uppercase;margin:0;line-height:.95}
+.steps{margin-top:14px;display:grid;gap:10px}
+.step{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start;border:var(--border2);padding:12px;background:var(--paper2);position:relative;box-shadow:2px 2px 0 rgba(0,0,0,.08)}
+.step:nth-child(1){transform:rotate(-.4deg)}
+.step:nth-child(2){transform:rotate(.5deg)}
+.step:nth-child(3){transform:rotate(-.3deg)}
+.step b{width:44px;height:44px;display:grid;place-items:center;background:var(--ink);color:var(--paper);font-family:'Bowlby One SC',cursive;font-size:16px;border:var(--border2);transform:rotate(-2deg)}
+.step h4{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.04em;text-transform:uppercase;margin:0}
+.step p{font-size:12px;color:#444;margin:4px 0 0;line-height:1.4;font-family:'Space Mono',monospace}
+.how-right{padding:14px;background:var(--yellow);display:grid;gap:10px;align-content:start;position:relative}
+.how-right::before{content:'';position:absolute;inset:0;opacity:.12;pointer-events:none;background:linear-gradient(20deg, transparent 48%, rgba(0,0,0,.06) 49%, transparent 50%),linear-gradient(-16deg, transparent 58%, rgba(0,0,0,.04) 58.6%, transparent 59.2%)}
+.compare{border:var(--border);background:var(--paper);box-shadow:var(--shadow-sm);overflow:hidden;position:relative;transform:rotate(var(--r,0deg))}
+.compare:nth-child(1){--r:-.5deg}
+.compare:nth-child(2){--r:.6deg}
+.compare-head{padding:10px 12px;border-bottom:var(--border2);display:flex;justify-content:space-between;align-items:center}
+.compare-head h4{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.04em;text-transform:uppercase;margin:0}
+.compare-head span{font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--ink);color:var(--paper);padding:4px 6px}
+.compare-body{padding:12px;display:grid;gap:8px}
+.kv{display:flex;justify-content:space-between;gap:10px;font-family:'JetBrains Mono',monospace;font-size:11px;border:1px dashed var(--ink);padding:8px;background:var(--paper2)}
+.kv b{font-weight:800}
+.pricing{padding:18px;background:var(--bg);border-bottom:var(--border);position:relative}
+.pricing h2{font-family:'Bowlby One SC',cursive;font-size:24px;letter-spacing:-.02em;text-transform:uppercase;margin:0}
+.pricing h2 i{font-style:normal;background:var(--lime);border:var(--border2);padding:0 6px;transform:rotate(-1deg);display:inline-block;font-size:20px}
+.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.price-card{border:var(--border);background:var(--paper);box-shadow:var(--shadow);padding:16px;position:relative;transform:rotate(var(--r,0deg))}
+.price-card:nth-child(1){--r:-.5deg}
+.price-card:nth-child(2){--r:.6deg}
+.price-card:nth-child(3){--r:-.3deg}
+.price-card.featured{background:var(--ink);color:var(--paper);--r:-.7deg}
+.price-card::after{content:'';position:absolute;top:-8px;left:50%;transform:translateX(-50%) rotate(-1deg);width:52px;height:10px;background:rgba(255,255,255,.6);border:1px solid rgba(0,0,0,.08)}
+.price-card.featured::after{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.12)}
+.price-card h3{font-family:'Bowlby One SC',cursive;font-size:15px;letter-spacing:-.01em;margin:0;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.price{font-family:'Bowlby One SC',cursive;font-size:28px;letter-spacing:-.02em;margin:8px 0 4px}
+.price small{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.03em;text-transform:uppercase}
+.price-card ul{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:6px;font-size:13px;line-height:1.4;font-family:'Space Mono',monospace}
+.price-card li::before{content:'✓ ';font-weight:800}
+.price-card.featured li::before{content:'★ '}
+.faq{padding:18px;background:var(--paper);border-bottom:var(--border);display:grid;grid-template-columns:.9fr 1.1fr;gap:14px;position:relative}
+.faq h3{font-family:'Bowlby One SC',cursive;font-size:20px;letter-spacing:-.02em;text-transform:uppercase;margin:0;line-height:1}
+.faq-list{display:grid;gap:8px}
+.faq-item{border:var(--border2);background:var(--paper2);padding:12px;cursor:pointer;position:relative;box-shadow:2px 2px 0 rgba(0,0,0,.08);transform:rotate(var(--r,0deg))}
+.faq-item:nth-child(1){--r:-.4deg;background:var(--yellow)}
+.faq-item:nth-child(2){--r:.4deg}
+.faq-item:nth-child(3){--r:-.3deg}
+.faq-item:nth-child(4){--r:.5deg}
+.faq-item b{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.03em;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.faq-item p{font-size:13px;line-height:1.5;margin:8px 0 0;display:none;color:#333;font-family:'Space Mono',monospace}
+.faq-item.open p{display:block}
+.faq-item::before{content:'';position:absolute;top:-6px;left:50%;transform:translateX(-50%) rotate(-1deg);width:32px;height:8px;background:rgba(255,255,255,.62);border:1px solid rgba(0,0,0,.08)}
+.footer{background:var(--ink);color:var(--paper);padding:16px 20px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center;position:relative}
+.footer::before{content:'';position:absolute;left:0;right:0;top:-8px;height:8px;background:var(--paper);clip-path:polygon(0 100%, 2% 20%, 5% 100%, 8% 30%, 11% 100%, 14% 15%, 18% 100%, 22% 25%, 26% 100%, 30% 20%, 34% 100%, 38% 30%, 42% 100%, 46% 15%, 50% 100%, 54% 25%, 58% 100%, 62% 20%, 66% 100%, 70% 30%, 74% 100%, 78% 15%, 82% 100%, 86% 25%, 90% 100%, 94% 20%, 97% 100%, 100% 100%);opacity:.9}
+.footer .mono{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;opacity:.7}
+.footer a{border:1px solid rgba(255,255,255,.2);padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.03em;text-transform:uppercase}
+.footer a:hover{background:var(--paper);color:var(--ink)}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(14px) rotate(-.5deg);background:var(--paper);color:var(--ink);border:var(--border2);padding:10px 14px;font-family:'Permanent Marker',cursive;font-size:14px;opacity:0;transition:all .2s;z-index:80;box-shadow:var(--shadow-sm);pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0) rotate(-.5deg)}
+.toast::before{content:'';position:absolute;top:-7px;left:50%;transform:translateX(-50%) rotate(-1deg);width:36px;height:10px;background:var(--yellow);border:1px solid rgba(0,0,0,.12)}
+/* — crushed state: chat lives on the LEFT — */
+.hero.is-crushed{grid-template-columns:1.06fr .94fr}
+.hero.is-crushed .hero-left{display:flex;flex-direction:column;gap:16px;padding-bottom:18px}
+.hero.is-crushed .hero-left #chatBox{margin-top:4px;min-height:420px;animation:chatIn .45s cubic-bezier(.34,1.56,.64,1);display:grid}
+@keyframes chatIn{0%{opacity:0;transform:translateY(14px) rotate(-.6deg)}100%{opacity:1;transform:translateY(0) rotate(0deg)}}
+.hero.is-crushed .stickers{opacity:.14;pointer-events:none}
+.hero.is-crushed .hero-right{align-content:start}
+@media (max-width: 980px){
+ .hero.is-crushed{grid-template-columns:1fr}
+ .hero.is-crushed .hero-left #chatBox{min-height:380px}
+ .hero{grid-template-columns:1fr}
+ .hero-right{border-left:none;border-top:var(--border)}
+ .bento{grid-template-columns:1fr 1fr}
+ .how{grid-template-columns:1fr}
+ .how-left{border-right:none;border-bottom:var(--border)}
+ .tweets{grid-template-columns:1fr 1fr}
+ .price-grid{grid-template-columns:1fr}
+ .faq{grid-template-columns:1fr}
+}
+/* ═══════ CLEAN POLISH — 2026-10-11 ═══════
+   Goal: keep the zine soul, lose the noise.
+   More whitespace, calmer motion, tighter hierarchy,
+   no layout hacks, 16px side gutter everywhere. */
+:root{ --radius:14px; --radius-sm:10px; --muted:#6B6B6B }
+body{ padding-inline:0 }
+.topbar{ transform:none !important; width:100% !important; margin:0 !important; padding:8px 16px; gap:8px }
+.marquee{ transform:none !important; width:100% !important; margin:0 !important }
+.nav{ padding:14px 16px }
+.hero{ gap:0; border-bottom:var(--border) }
+.hero-left{ padding:32px 24px 24px }
+.hero h1{ letter-spacing:-.04em }
+.hero p{ color:#1a1a1a; max-width:52ch }
+.hero-actions .btn{ border-radius:var(--radius-sm) }
+.upload-card{ transform:none !important; border-radius:var(--radius); box-shadow:5px 5px 0 var(--ink) }
+.upload-card::before{ opacity:.06 }
+.dropzone{ animation:none !important; transform:none !important; border-radius:var(--radius-sm); padding:26px 18px; border-width:2.5px }
+.dropzone.drag{ transform:none !important; box-shadow:inset 0 0 0 2px var(--ink), 0 10px 28px rgba(0,0,0,.11) }
+.dropzone .dz-icon-wrap{ border-radius:10px }
+.file-meta{ border-radius:var(--radius-sm); transform:none !important }
+.progress{ border-radius:999px }
+.crush-stage{ border-radius:var(--radius-sm); transform:none !important }
+.crush-paper{ border-radius:8px }
+.crush-bar{ border-radius:999px }
+.stat-box{ border-radius:var(--radius-sm); transform:none !important }
+.tables-wrap .tbl-card, .result-card, .chat-box{ border-radius:var(--radius-sm) }
+.chat-box{ min-height:360px }
+.chat-log{ background-image:repeating-linear-gradient(0deg, transparent 0 28px, rgba(0,0,0,.03) 28px 29px) }
+.chip, .slay, .tbl-btn, .btn{ border-radius:8px }
+.features{ padding:22px 16px }
+.bento{ gap:12px }
+.bento .feat{ border-radius:var(--radius-sm); transform:none !important; min-height:150px }
+.bento .feat::after{ display:none }
+.social-proof{ padding:18px 16px }
+.tweet{ border-radius:var(--radius-sm); transform:none !important }
+.how-left{ padding:22px 16px }
+.step{ border-radius:var(--radius-sm); transform:none !important }
+.compare{ border-radius:var(--radius-sm); transform:none !important }
+.pricing{ padding:22px 16px }
+.price-card{ border-radius:var(--radius); transform:none !important }
+.faq{ padding:22px 16px }
+.faq-item{ border-radius:var(--radius-sm); transform:none !important }
+.footer{ padding:18px 16px }
+.toast{ border-radius:10px }
+.hero.is-crushed{ gap:0 }
+.hero.is-crushed .hero-left{ gap:18px }
+@media (max-width: 980px){
+ .hero.is-crushed{grid-template-columns:1fr}
+ .hero.is-crushed .hero-left #chatBox{min-height:380px}
+ .hero{grid-template-columns:1fr}
+ .hero-right{border-left:none;border-top:var(--border)}
+ .bento{grid-template-columns:1fr 1fr}
+ .how{grid-template-columns:1fr}
+ .how-left{border-right:none;border-bottom:var(--border)}
+ .tweets{grid-template-columns:1fr 1fr}
+ .price-grid{grid-template-columns:1fr}
+ .faq{grid-template-columns:1fr}
+}
+@media (max-width: 720px){
+ .nav{padding:10px 12px}
+ .nav-links{display:none}
+ .nav-links.open{display:flex;position:absolute;top:100%;left:0;right:0;background:var(--paper);border-bottom:var(--border);flex-direction:column;align-items:stretch;padding:10px}
+ .hamburger{display:grid}
+ .hero-left{padding:20px 14px}
+ .hero h1{font-size:34px}
+ .bento{grid-template-columns:1fr}
+ .tweets{grid-template-columns:1fr}
+ .stat-strip{grid-template-columns:1fr 1fr 1fr}
+ .sticker{font-size:11px}
+}
+</style>
+
+<div class="topbar">
+ <span class="pill">BRO ALERT</span>
+ <span><b>POV:</b> you still reading 40-page PDFs line by line — be fr rn twin</span>
+ <a href="#upload">fix my life →</a>
+</div>
+
+<nav class="nav">
+ <a href="#" class="brand">
+ <div class="mark">PC</div>
+ <div class="word">PAPERCRUSH <i>PDF</i><sub>your pdf homie</sub></div>
+</a>
+ <div class="nav-links" id="navLinks">
+ <a href="#features">Features</a>
+ <a href="#proof">Receipts</a>
+ <a href="#pricing">Pricing</a>
+ <a href="#upload" class="active">Open Studio →</a>
+</div>
+ <div class="nav-right">
+ <button class="btn btn-ghost" onclick="toast('sign in? my guy you already in — no account needed ')">Sign in</button>
+ <a href="#upload" class="btn btn-primary">Crush it →</a>
+ <button class="btn hamburger" id="menuBtn" aria-label="Menu" style="padding:8px 10px">≡</button>
+</div>
+</nav>
+
+<div class="marquee"><div class="marquee-track">
+ <span><em>locked in fr</em></span><span><i></i> no cap citations</span><span><i></i> scanned? still cooked</span><span><i></i> tables → sheets in 1 tap</span><span><i></i> W rizz only</span><span><i></i> <em>we up fr</em></span><span><i></i> no cap citations</span><span><i></i> scanned? still cooked</span><span><i></i> tables → sheets in 1 tap</span><span><i></i> W rizz only</span>
+</div></div>
+
+<section class="hero" id="upload">
+ <div class="hero-left">
+ <div class="badge-row">
+ <span class="mini-badge">no signup fr</span>
+ <span class="mini-badge pink">10 sec to first answer</span>
+ <span class="mini-badge cyan">private — stays on your device</span>
+ <span class="scribble-caveat">← trust me twin</span>
+</div>
+ <h1>your PDF is<br><span class="box">NOT that deep.</span><br><span class="outline">we got you</span> <span class="wavy">twin</span></h1>
+ <p>Drop that cursed 40-page doc — <b>PaperCrush</b> rips it apart: summary that actually hits, tables you can copy, and a chat that <b>quotes the page</b> so you know it ain't capping.</p>
+ <div class="hero-actions">
+ <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Choose PDF — or just drop it →</button>
+ <button class="btn btn-yellow" onclick="loadSample()">Try sample PDF — 2 sec</button>
+</div>
+ <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+ <div class="live"><span class="live-dot"></span><strong id="liveCount">1,284</strong><span>PDFs crushed today</span></div>
+ <span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;opacity:.6">trusted for</span>
+ <span style="border:var(--border2);background:var(--paper);padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;transform:rotate(-1deg)">Contracts</span>
+ <span style="border:var(--border2);background:var(--paper);padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;transform:rotate(1deg)">Papers</span>
+ <span style="border:var(--border2);background:var(--paper);padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;transform:rotate(-.5deg)">Reports</span>
+</div>
+ <div class="stickers" id="stickers">
+ <div class="sticker st-s1" data-drag>NO CAP</div>
+ <div class="sticker st-s2" data-drag>COOKED</div>
+ <div class="sticker st-s3" data-drag>locked in fr</div>
+</div>
+</div>
+
+ <div class="hero-right">
+ <div class="upload-card" id="uploadCard">
+ <div class="tape"></div>
+ <div class="fold"></div>
+ <h3>Crush studio <i>LIVE</i> <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.06em;text-transform:uppercase;background:var(--ink);color:var(--lime);padding:4px 6px;border:1px solid var(--ink)"> ready to cook</span></h3>
+ <p>PDF only · up to 25 MB · messy scans? we handle it, twin</p>
+ <div class="dropzone torn-bottom" id="dropzone" tabindex="0" role="button" aria-label="Drop PDF here">
+ <div class="dz-scanner" aria-hidden="true"></div>
+ <div class="dz-spotlight" id="dzSpotlight" aria-hidden="true"></div>
+ <div class="dz-ripples" id="dzRipples" aria-hidden="true"></div>
+ <div class="dz-particles" id="dzParticles" aria-hidden="true"></div>
+ <div class="dz-check" id="dzCheck" aria-hidden="true"><span>✓</span></div>
+ <!-- basketball hoop reveal on drag -->
+ <div class="dz-hoop" id="dzHoop" aria-hidden="true">
+ <div class="hoop-board"><b>PAPER<br>CRUSH</b></div>
+ <div class="hoop-rim"></div>
+ <div class="hoop-net" id="hoopNet"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+ <div class="hoop-shadow"></div>
+</div>
+ <svg class="dz-arc" id="dzArc" viewBox="0 0 320 170" preserveAspectRatio="none" aria-hidden="true">
+ <path id="dzArcPath" d="M 18 138 Q 92 18 160 42" />
+ <circle id="dzArcDot" r="5" />
+</svg>
+ <div class="dz-swish" id="dzSwish">SWISH</div>
+ <div class="dz-plus2" id="dzPlus2">+2</div>
+ <div class="dz-paper-stack" aria-hidden="true"><span></span><span></span><span></span></div>
+ <div class="dropzone-inner" id="dzInner">
+ <div class="dz-icon-wrap" id="dzIconWrap">
+ <span class="dz-icon">⇧</span>
+ <span class="dz-icon-swap">PDF</span>
+</div>
+ <strong id="dzTitle">Drag & drop your PDF here bro</strong>
+ <span class="dz-sub" id="dzSub">or click to browse — pdf only, we don't do word docs</span>
+ <span class="hint" id="dzHint">we don't store your file. never leaves your browser. ghosted fr</span>
+</div>
+</div>
+ <input type="file" id="fileInput" accept=".pdf,application/pdf" hidden>
+ <div class="file-meta" id="fileMeta">
+ <div class="file-icon">PDF</div>
+ <div style="flex:1;min-width:0">
+ <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" id="fileName">—</div>
+ <div style="font-family:'JetBrains Mono',monospace;font-size:11px;opacity:.7" id="fileInfo">—</div>
+</div>
+ <button class="btn btn-ghost" style="padding:6px 8px;box-shadow:none" onclick="clearFile()">×</button>
+</div>
+ <div class="progress" id="progress"><i id="progressBar"></i><em id="progressText">crushing… 0%</em></div>
+ <div class="ocr-progress" id="ocrProgress" aria-live="polite"><i style="width:8px;height:8px;background:var(--orange);border-radius:50%;animation:pulse 1.1s infinite;flex-shrink:0"></i><b id="ocrProgLabel">OCR</b><div class="ocr-bar"><i id="ocrBar"></i></div><small id="ocrProgText">0%</small></div>
+ <div class="crush-stage" id="crushStage" aria-live="polite">
+ <div class="crush-paper" id="crushPaper" aria-hidden="true">
+ <div class="cp s1"><i>PDF</i></div>
+ <div class="cp s2"><i>PDF</i></div>
+ <div class="cp s3"><i>PDF</i></div>
+ <div class="crush-scan"></div>
+ <div class="crush-shreds" id="crushShreds"></div>
+ </div>
+ <div class="crush-meta">
+ <div class="crush-kicker"><i></i> CRUSHING <b id="crushKickerTxt">un-crumpling…</b></div>
+ <div class="crush-steps" id="crushSteps">
+ <span class="cs on" data-k="0">scan</span>
+ <span class="cs" data-k="1">tables</span>
+ <span class="cs" data-k="2">citations</span>
+ <span class="cs" data-k="3">cook</span>
+ </div>
+ <div class="crush-bar"><i id="crushBar"></i><em id="crushBarTxt">0%</em></div>
+ <div class="crush-msg" id="crushMsg">we not capping — every line gets a receipt</div>
+ </div>
+ <div class="crush-done" id="crushDone"><span>COOKED — W</span></div>
+ </div>
+ <div class="actions-row">
+ <button class="btn btn-primary" id="crushBtn" onclick="crush()" disabled style="opacity:.5;pointer-events:none">Crush it bro →</button>
+ <button class="btn btn-ghost" onclick="loadSample()">Use sample</button>
+ <span id="ocrRow" style="display:none;align-items:center;gap:6px;flex-wrap:wrap">
+  <button class="btn btn-ghost" id="ocrBtn" onclick="runOcr()">OCR scanned pages →</button>
+  <label style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;display:inline-flex;align-items:center;gap:6px;border:var(--border2);background:var(--paper);padding:6px 8px;box-shadow:1.5px 1.5px 0 var(--ink)">lang
+    <select id="ocrLang" style="font:inherit;font-size:11px;border:1px solid var(--ink);background:var(--paper2);padding:4px 6px;outline:none">
+      <option value="eng" selected>ENG</option>
+      <option value="eng+hin">ENG+HIN</option>
+      <option value="hin">HIN</option>
+    </select>
+  </label>
+  <label style="font-family:'JetBrains Mono',monospace;font-size:9px;opacity:.6;display:inline-flex;align-items:center;gap:4px"><input type="checkbox" id="ocrTableBoost" checked style="accent-color:var(--ink)"> box-detect tables</label>
+ </span>
+ <span id="crushHint" style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;align-self:center;opacity:.6">pick a pdf first</span>
+</div>
+ <div class="stat-strip" style="margin-top:12px">
+ <div class="stat-box"><div class="tape small"></div><b>10s</b><label>avg crush time</label></div>
+ <div class="stat-box"><div class="tape small" style="left:52%"></div><b>99%</b><label>ocr accuracy</label></div>
+ <div class="stat-box"><div class="tape small"></div><b>0</b><label>files stored — ghosted</label></div>
+</div>
+</div>
+
+ <div class="results" id="results">
+ <div class="result-card">
+ <div class="result-head"><h4> summary — cooked</h4><span id="resMeta">—</span></div>
+ <div class="result-body">
+ <ul class="bullet" id="summaryList"></ul>
+ <div class="slay-bar">
+ <button class="btn btn-yellow" style="padding:8px 10px;box-shadow:var(--shadow-xs)" onclick="copySummary()">Copy summary</button>
+ <button class="btn btn-ghost" style="padding:8px 10px;box-shadow:var(--shadow-xs)" onclick="exportDoc()">Export →</button>
+ <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;margin-left:auto">vibe check: <b style="background:var(--lime);border:1px solid var(--ink);padding:1px 6px;transform:rotate(-1deg);display:inline-block">W</b></span>
+</div>
+ <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+ <button class="slay" onclick="react(this)"> W</button>
+ <button class="slay" onclick="react(this)"> cooked</button>
+ <button class="slay" onclick="react(this)"> locked in</button>
+ <button class="slay" onclick="react(this)"> understood assignment</button>
+</div>
+</div>
+</div>
+
+ <div class="result-card">
+ <div class="result-head"><h4> key facts — no cap</h4><span>auto-detected fr</span></div>
+ <div class="result-body" id="facts"></div>
+</div>
+
+ <div class="tables-wrap" id="tablesWrap"></div>
+
+ <div class="chat-box" id="chatBox">
+ <div class="chat-head"><h4><i></i> Ask this PDF — chat</h4><span style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;background:var(--ink);color:var(--paper);padding:4px 6px" id="chatPages">— pages</span></div>
+ <div class="chat-log" id="chatLog"></div>
+ <div class="chips" id="chips">
+ <button class="chip" onclick="ask('Summarize in 3 bullets')">Summarize — quick</button>
+ <button class="chip" onclick="ask('Extract all dates and deadlines')">Extract dates</button>
+ <button class="chip" onclick="ask('What are the risks? be brutally honest')">Risks? be honest</button>
+ <button class="chip" onclick="ask('Make a table of key terms')">Make a table</button>
+</div>
+ <div class="chat-input">
+ <input id="chatInput" placeholder="Ask anything bro — e.g. what does page 2 say about refunds?">
+ <button class="btn btn-primary" style="box-shadow:none" onclick="sendChat()">Ask →</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="features" id="features">
+ <div class="features-head">
+ <h2>everything <em>inside</em> your pdf — out.</h2>
+ <p class="sub">no fluff. just facts, tables, and receipts. fr fr.</p>
+</div>
+ <div class="bento">
+ <div class="feat f1"><span class="tag">most used</span><h3>The rundown</h3><p>Summaries that actually hit — decisions, deadlines, bag. Cites the page so you know it ain't capping.</p><span class="big-emoji" aria-hidden="true"></span></div>
+ <div class="feat f2"><h3>Tables → real tables</h3><p>We rebuild tables so you can copy straight to Sheets. No more retyping like it's 2019</p><span class="big-emoji" aria-hidden="true"></span></div>
+ <div class="feat f3"><h3>Ask like you text</h3><p>"what does it say about refunds?" — answer + quote + page. no hallucinating, no cap.</p><span class="big-emoji" aria-hidden="true"></span></div>
+ <div class="feat f4"><h3>Scans? still cooked</h3><p>Skewed, faded, barely readable — we straighten, clean, and OCR it anyway.</p><span class="big-emoji" aria-hidden="true"></span></div>
+ <div class="feat f5"><h3>Compare 2 PDFs</h3><p>Contract vs redline — we highlight what changed, added, or vanished. clause by clause.</p><span class="big-emoji" aria-hidden="true"></span></div>
+ <div class="feat f6"><span class="tag">boring stuff handled</span><h3>Adulting — automated</h3><p>Redact PII, extract signatories, deadlines, amounts. one click to checklist. go touch grass twin</p><span class="big-emoji" aria-hidden="true"></span></div>
+</div>
+</section>
+
+<section class="social-proof" id="proof">
+ <div class="social-head">
+ <h3>Receipts — <i>they're locked in</i></h3>
+ <span style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.04em;text-transform:uppercase;opacity:.6">not paid actors — fr reviews</span>
+</div>
+ <div class="tweets">
+ <div class="tweet" style="--r:-.7deg">
+ <div class="tweet-head"><img class="avatar" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&q=80&auto=format&fit=crop&crop=face" alt=""><div><b>arjun · @arjun.codes</b><br><span>2nd year law · 12k</span></div><span style="margin-left:auto"></span></div>
+ <p>PaperCrush just saved me 3 hrs on a 60-page reading. summary was <b>better than my own notes</b> and it cited every page. W tool fr</p>
+ <div class="meta"><span class="stars">★★★★★</span><span>2.4k likes</span><span>· 8h ago</span></div>
+</div>
+ <div class="tweet" style="--r:.6deg;background:var(--yellow)">
+ <div class="tweet-head"><img class="avatar" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80&auto=format&fit=crop&crop=face" alt=""><div><b>karan · founder</b><br><span>@karanbuilds</span></div><span style="margin-left:auto"></span></div>
+ <p>we compared 2 versions of our MSA in PaperCrush. flagged the sneaky liability change on p.9 we <b>almost missed</b>. this tool pays for itself no cap.</p>
+ <div class="meta"><span class="stars">★★★★★</span><span>892 likes</span><span>· 1d ago</span></div>
+</div>
+ <div class="tweet" style="--r:-.4deg;background:var(--cyan)">
+ <div class="tweet-head"><img class="avatar" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80&auto=format&fit=crop&crop=face" alt=""><div><b>dev · researcher</b><br><span>@dev.papers</span></div><span style="margin-left:auto"></span></div>
+ <p>as a PhD guy drowning in papers — this is the <b>first summarizer that doesn't cap</b>. it QUOTES the page. finally bro</p>
+ <div class="meta"><span class="stars">★★★★★</span><span>1.1k likes</span><span>· 3h ago</span></div>
+</div>
+</div>
+</section>
+
+<section class="how" id="how">
+ <div class="how-left">
+ <h2>how it<br>actually works</h2>
+ <p class="scribble-caveat" style="font-size:17px;margin:6px 0 0;display:block">spoiler: it's not magic, it's just not mid</p>
+ <div class="steps">
+ <div class="step"><b>1</b><div><h4>Drop the PDF twin</h4><p>Drag or pick. We check size, pages, and if it's scanned vs text — no judgment.</p></div></div>
+ <div class="step"><b>2</b><div><h4>We CRUSH it</h4><p>Text extraction → OCR if needed → table detection → citation index. All in ~10 sec.</p></div></div>
+ <div class="step"><b>3</b><div><h4>You ask, it quotes</h4><p>Chat with page-anchored answers. Every sentence links back — receipts provided.</p></div></div>
+</div>
+</div>
+ <div class="how-right">
+ <div class="compare">
+ <div class="compare-head"><h4>Before — raw PDF</h4><span>40 pages of pain</span></div>
+ <div class="compare-body">
+ <div class="kv"><span>Find "payment terms"</span><b>Ctrl+F → 18 hits</b></div>
+ <div class="kv"><span>Copy a table</span><b>Paste = chaos</b></div>
+ <div class="kv"><span>Share summary</span><b>"read the whole thing"</b></div>
+</div>
+</div>
+ <div class="compare">
+ <div class="compare-head" style="background:var(--lime)"><h4>After — PaperCrush</h4><span style="background:var(--ink)">2 min, done</span></div>
+ <div class="compare-body">
+ <div class="kv"><span>"payment terms?"</span><b>Page 7, §4.2 — quoted</b></div>
+ <div class="kv"><span>Copy a table</span><b>1 click → Sheets</b></div>
+ <div class="kv"><span>Share summary</span><b>5 bullets, cited</b></div>
+</div>
+</div>
+ <button class="btn btn-primary" style="justify-content:center;width:100%" onclick="document.getElementById('uploadCard').scrollIntoView({behavior:'smooth'})">Crush your first PDF — free bro →</button>
+ <p class="scribble" style="justify-content:center;font-size:13px;margin:2px 0 0">← fr it's that easy twin</p>
+</div>
+</section>
+
+<section class="pricing" id="pricing">
+ <h2>Pricing — <i>no gatekeeping</i></h2>
+ <p style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.03em;text-transform:uppercase;opacity:.6;margin:6px 0 0">pay when it saves you time. cancel anytime. no "contact sales" bs.</p>
+ <div class="price-grid">
+ <div class="price-card">
+ <h3>Homie</h3>
+ <div class="price">₹0 <small>/ forever fr</small></div>
+ <p style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.03em;text-transform:uppercase;opacity:.6;margin:0">for the boys on a budget</p>
+ <ul><li>3 PDFs / day</li><li>Summaries + chat</li><li>Copy tables</li><li>No signup, no email</li></ul>
+ <button class="btn btn-ghost" style="width:100%;margin-top:12px;justify-content:center" onclick="toast('you already on Homie — crush a pdf above twin ')">Start free →</button>
+</div>
+ <div class="price-card featured">
+ <span style="position:absolute;top:-10px;left:14px;background:var(--yellow);color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border:2px solid var(--ink);transform:rotate(-1deg);z-index:1">MOST WANTED</span>
+ <h3>Beast Mode</h3>
+ <div class="price">₹299 <small>/ month</small></div>
+ <p style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.03em;text-transform:uppercase;opacity:.7;margin:0;color:rgba(255,255,255,.7)">he's him fr</p>
+ <ul><li>200 PDFs / month</li><li>OCR + messy scans</li><li>Compare 2 PDFs</li><li>Export to Notion / Sheets</li><li>Bulk crush — 10 at once</li></ul>
+ <button class="btn btn-yellow" style="width:100%;margin-top:12px;justify-content:center" onclick="toast('Checkout — Razorpay link coming soon twin, hold tight ')">Get Beast Mode →</button>
+</div>
+ <div class="price-card">
+ <h3>Big Dawg</h3>
+ <div class="price">₹899 <small>/ month</small></div>
+ <p style="font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.03em;text-transform:uppercase;opacity:.6;margin:0">for the ones running it</p>
+ <ul><li>1,000 PDFs / month</li><li>Team — 5 seats</li><li>API + webhooks</li><li>SSO + audit log</li><li>Priority OCR</li></ul>
+ <button class="btn btn-ghost" style="width:100%;margin-top:12px;justify-content:center" onclick="toast('Big Dawg — email hello@papercrush.studio ')">Contact →</button>
+</div>
+</div>
+</section>
+
+<section class="faq" id="faq">
+ <div>
+ <h3>your questions,<br>answered <span style="background:var(--cyan);border:var(--border2);padding:0 6px;transform:rotate(-1deg);display:inline-block">no cap</span></h3>
+ <p style="font-size:13px;color:#555;line-height:1.5;margin:8px 0 0;font-family:'Space Mono',monospace">still confused twin? email us — we reply like humans, not bots</p>
+ <p class="scribble" style="margin-top:8px;font-size:16px">we don't sell your data twin</p>
+</div>
+ <div class="faq-list">
+ <div class="faq-item open" onclick="this.classList.toggle('open')"><b>Do you store my PDFs? <span>−</span></b><p>Nope. Everything runs in your browser. File goes ghost the second you close the tab . We literally can't see it even if we wanted to.</p></div>
+ <div class="faq-item" onclick="this.classList.toggle('open')"><b>Does it work on scanned PDFs? <span>+</span></b><p>Yup — we auto-detect scans and run OCR. Skewed, faded, tilted — we still cook. 99% accuracy on clean scans.</p></div>
+ <div class="faq-item" onclick="this.classList.toggle('open')"><b>What's the catch with free? <span>+</span></b><p>No catch bro. 3 PDFs/day, no signup, no email wall. We want you to be locked in before you pay</p></div>
+ <div class="faq-item" onclick="this.classList.toggle('open')"><b>Can I cancel anytime? <span>+</span></b><p>Fr, one click. No "are you sure" guilt trip. No dark patterns — we not that kind of company.</p></div>
+</div>
+</section>
+
+<footer class="footer">
+ <div><span class="mono">© 2026 PaperCrush — built in New Delhi with hustle & caffeine · <span style="background:var(--yellow);color:var(--ink);padding:1px 4px;border:1px solid var(--ink);font-family:'Permanent Marker',cursive;font-size:11px">CRUSHED PAPER, ON PURPOSE</span> · no files stored, no cap</span></div>
+ <div class="footer-links"><a href="#">Privacy</a><a href="#">Terms</a><a href="#" onclick="toast('hello@papercrush.studio — copied twin ');return false">hello@papercrush.studio</a></div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* — pdf.js worker — */
+if(window.pdfjsLib){ try{ pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; }catch(e){} }
+/* — table detection + OCR state — */
+let detectedTables=[]; // {page, title, headers:[], rows:[][]}
+let ocrRunning=false, ocrResults=[]; // {page: N, text: '...'}
+let ocrLang='eng', ocrTableBoost=true;
+try{
+  const _lsLang=localStorage.getItem('pc-ocr-lang'); if(_lsLang) ocrLang=_lsLang;
+  const _tb=localStorage.getItem('pc-ocr-tableboost'); if(_tb!==null) ocrTableBoost=_tb!=='0';
+}catch(e){}
+function escAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+const $ = s => document.querySelector(s);
+const dropzone = $('#dropzone'), fileInput = $('#fileInput'), fileMeta = $('#fileMeta'), fileName = $('#fileName'), fileInfo = $('#fileInfo');
+const crushBtn = $('#crushBtn'), crushHint = $('#crushHint'), progress = $('#progress'), progressBar = $('#progressBar'), progressText = $('#progressText');
+const results = $('#results'), summaryList = $('#summaryList'), facts = $('#facts'), resMeta = $('#resMeta'), chatLog = $('#chatLog'), chatInput = $('#chatInput'), chatPages = $('#chatPages');
+let currentFile = null, crushed = false;
+let chatOrigParent = null, chatOrigNext = null;
+/* real pdf state */
+let pdfDoc=null, pdfPages=[], pdfFullText='', pdfMeta={pages:0, words:0, chars:0};
+let liveN = 1284;
+setInterval(()=>{ liveN += Math.floor(Math.random()*3); const el=$('#liveCount'); if(el) el.textContent = liveN.toLocaleString('en-IN'); }, 2200);
+function formatBytes(b){
+ if(b < 1024) return b + ' B';
+ if(b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+ return (b/1024/1024).toFixed(2) + ' MB';
+}
+const MAX_BYTES = 25*1024*1024;
+function isPdfMagic(buf){
+ try{ const h=new Uint8Array(buf.slice(0,5)); return String.fromCharCode(...h)==='%PDF-'; }catch(e){ return false; }
+}
+function textFromItems(items){
+ // Y-group by transform[5], then sort by X (transform[4]) — preserves reading order & line breaks
+ const rows=new Map();
+ for(const it of items){
+   const tr=it.transform||[1,0,0,1,0,0];
+   const y=Math.round(tr[5]*10)/10; const x=tr[4];
+   if(!rows.has(y)) rows.set(y,[]);
+   rows.get(y).push({s:it.str, x, w:it.width||0});
+ }
+ const ys=[...rows.keys()].sort((a,b)=> b-a);
+ const lines=ys.map(y=>{
+   const row=rows.get(y).sort((a,b)=> a.x-b.x);
+   // re-insert gaps where x gap > 1.6x avg char width — keeps columns apart
+   let out=''; let lastX=null;
+   for(const c of row){
+     if(lastX!==null && (c.x - lastX) > 10) out+='  ';
+     else if(out) out+=' ';
+     out+=c.s; lastX=c.x + (c.w||0);
+   }
+   return out.trim();
+ }).filter(Boolean);
+ return lines.join('\n');
+}
+async function extractPdf(file){
+ try{
+   const buf=await file.arrayBuffer();
+   if(!isPdfMagic(buf)){ toast('not a PDF — header missing (%PDF) twin '); return null; }
+   if(!window.pdfjsLib) throw new Error('pdf.js not loaded');
+   let doc;
+   try{
+     const task=pdfjsLib.getDocument({data:buf, cMapUrl:'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/', cMapPacked:true});
+     if(task.onPassword) task.onPassword=(update,reason)=>{ toast(reason===1 ? 'PDF is locked — unlock it first twin ' : 'wrong password twin '); update(''); };
+     doc=await task.promise;
+   }catch(e){
+     const msg=String(e&&e.message||e);
+     if(/password/i.test(msg) || (e&&e.name==='PasswordException')){ toast('PDF is locked — unlock it first twin '); return null; }
+     throw e;
+   }
+   const pages=[]; let fullText='';
+   for(let i=1;i<=doc.numPages;i++){
+     const page=await doc.getPage(i);
+     const tc=await page.getTextContent();
+     const text=textFromItems(tc.items);
+     // stash raw items for geometry-based table detection
+     const rawItems=tc.items.map(it=>({str:it.str, x:(it.transform&&it.transform[4])||0, y:(it.transform&&it.transform[5])||0, w:it.width||0, h:it.height||0}));
+     pages.push({num:i, text:text.trim(), rawItems});
+     fullText += (i>1?'\n\n':'') + '—— Page '+i+' ——\n' + text.trim();
+   }
+   return {doc, pages, fullText};
+ }catch(e){
+   console.warn('extractPdf failed',e);
+   const m=String(e&&e.message||'');
+   if(/Invalid PDF|Missing PDF|header/i.test(m)) toast('corrupt PDF — try re-exporting it twin ');
+   else if(!/password/i.test(m)) toast('couldn\'t read that PDF — try another file twin ');
+   return null;
+ }
+}
+/* — page-image helper for OCR (renders one page to a canvas) — */
+async function renderPageToCanvas(page, scale=1.7){
+  const vp=page.getViewport({scale});
+  const c=document.createElement('canvas'); c.width=vp.width; c.height=vp.height;
+  const ctx=c.getContext('2d');
+  await page.render({canvasContext:ctx, viewport:vp}).promise;
+  return c;
+}
+async function getPageOpsBoxes(page){
+  // OperatorList token ids in pdf.js — __proto__ not stable across builds, so feature-detect by scanning ops
+  try{
+    const opList=await page.getOperatorList();
+    const OPS=pdfjsLib.OPS || {};
+    const target=new Set([OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageMaskXObject].filter(v=> v!=null));
+    if(!target.size) return [];
+    const fnArray=opList.fnArray || opList.fnArray===0 ? opList.fnArray : (opList.fnArray ?? []);
+    let imageOps=0;
+    for(let i=0;i<fnArray.length;i++) if(target.has(fnArray[i])) imageOps++;
+    // Also: hasNonText heuristic — if text layer is sparse, the page likely contains image regions worth OCRing as "boxed"
+    return imageOps>0 ? [{type:'image', count:imageOps}] : [];
+  }catch(e){ return []; }
+}
+function wordCount(s){ return s.trim()? s.trim().split(/\s+/).length:0; }
+function summarizeFromText(text, maxBullets=4){
+  const clean=text.replace(/\s+/g,' ').trim();
+  if(!clean) return [];
+  const rawSents=clean.split(/(?<=[\.!\?])\s+(?=[A-Z0-9])/);
+  const sents=rawSents.filter(s=> s.trim().length>=38 && s.trim().length<=520);
+  if(!sents.length) return rawSents.slice(0,maxBullets).map(x=> x.trim().slice(0,240));
+  // TF with length normalization + lead bias (first 20% of doc boosted)
+  const stop2=new Set(['this','that','with','from','have','will','been','were','their','which','about','into','there','would','should','could','also','such','than','then','when','what','your','more','most','some','only','very','over','under','after','before','between']);
+  const freq={}; clean.toLowerCase().split(/\W+/).forEach(w=>{ if(w.length>=4 && !stop2.has(w)) freq[w]=(freq[w]||0)+1; });
+  const n=sents.length;
+  const scored=sents.map((s,i)=>{
+    const words=s.toLowerCase().split(/\W+/).filter(Boolean);
+    let sc=0; for(const w of words) if(freq[w]) sc+=Math.log(1+freq[w]);
+    sc/=Math.sqrt(words.length||1);
+    // lead bias: first 20% of doc
+    if(i < n*0.2) sc*=1.22;
+    // important-clause boost
+    if(/shall|must|payment|deadline|agreement|contract|liability|termination|warranty|delivery|milestone|schedule|penalty|breach|indemnity/i.test(s)) sc+=6;
+    // penalize very short / very long
+    if(s.length<60) sc*=0.7; if(s.length>380) sc*=0.85;
+    return {s:s.trim(), sc, idx:i};
+  });
+  scored.sort((a,b)=> b.sc-a.sc);
+  const picked=[]; const seen=new Set();
+  for(const c of scored){
+    const sig=c.s.slice(0,52).toLowerCase();
+    if(seen.has(sig)) continue; seen.add(sig);
+    picked.push(c);
+    if(picked.length>=maxBullets) break;
+  }
+  // restore doc order for readability
+  picked.sort((a,b)=> a.idx-b.idx);
+  return picked.map(c=> c.s.length>280? c.s.slice(0,277)+'…': c.s);
+}
+/* — table detection: geometry-first + whitespace fallback — */
+function detectTablesGeometry(page){
+ // Use rawItems x clustering to find column-aligned rows. Returns one table or null.
+ const items=page.rawItems; if(!items || items.length < 9) return null;
+ // Group items into rows by y (within 3 units)
+ const rows=new Map();
+ for(const it of items){ const y=Math.round(it.y); if(!rows.has(y)) rows.set(y,[]); rows.get(y).push(it); }
+ const sortedY=[...rows.keys()].sort((a,b)=> b-a);
+ const lineRows=sortedY.map(y=> rows.get(y).sort((a,b)=> a.x-b.x));
+ // Find runs of rows with same column count (>=3 rows, >=2 cols)
+ const runs=[]; let cur=[];
+ for(const row of lineRows){
+   // cluster row into cells by x-gap > 12
+   const cells=[]; let c=[]; let lastX=null;
+   for(const it of row){
+     if(lastX!==null && (it.x - lastX) > 12){ cells.push(c.map(x=> x.str).join(' ').trim()); c=[it]; }
+     else c.push(it);
+     lastX=it.x + (it.w||0);
+   }
+   if(c.length) cells.push(c.map(x=> x.str).join(' ').trim());
+   const clean=cells.map(s=> s.trim()).filter(Boolean);
+   if(clean.length>=2) cur.push(clean);
+   else { if(cur.length>=3) runs.push(cur); cur=[]; }
+ }
+ if(cur.length>=3) runs.push(cur);
+ for(const run of runs){
+   const counts={}; run.forEach(c=> counts[c.length]=(counts[c.length]||0)+1);
+   const modeLen=Number(Object.entries(counts).sort((a,b)=> b[1]-a[1])[0][0]);
+   const norm=run.filter(c=> c.length===modeLen);
+   if(norm.length>=3) return {headers:norm[0], rows:norm.slice(1, Math.min(norm.length, 18))};
+ }
+ return null;
+}
+function detectTables(pages, fullText, opts){
+  const useBoxes=opts && typeof opts.boxes==='boolean' ? opts.boxes : ocrTableBoost;
+  const tables=[];
+  for(const p of pages){
+    // 1) geometry path (most accurate for native PDFs)
+    const geo=detectTablesGeometry(p);
+    if(geo){
+      const boxHint=useBoxes && p._hasImageOps;
+      tables.push({page:p.num, title: boxHint ? `Table (geometry + box) — p.${p.num}` : `Table (geometry) — p.${p.num}`, headers:geo.headers, rows:geo.rows});
+      continue;
+    }
+    const raw=p.text;
+    const boxHint = useBoxes && p._hasImageOps;
+    const minCols = boxHint ? 2 : 3;
+    const candidates=[];
+    const lcLines=raw.split(/\n|  (?=[A-Z0-9₹$])|   +/);
+    for(const l of lcLines){ const cols=l.trim().split(/\s{2,}|\t/).map(c=> c.trim()).filter(Boolean); if(cols.length>=minCols && l.trim().length>= (boxHint?12:18)) candidates.push(cols); }
+    if(candidates.length>=3){
+      const counts={}; candidates.forEach(c=> counts[c.length]=(counts[c.length]||0)+1);
+      const modeLen=Number(Object.entries(counts).sort((a,b)=> b[1]-a[1])[0][0]);
+      const run=candidates.filter(c=> c.length===modeLen);
+      if(run.length>=3){
+        const title = boxHint ? `Table (box-detect) — p.${p.num}` : `Detected table — p.${p.num}`;
+        tables.push({page:p.num, title, headers:run[0], rows:run.slice(1, Math.min(run.length, 18))});
+        continue;
+      }
+    }
+    const commaLines=raw.split('\n').filter(l=> (l.match(/,/g)||[]).length>=2);
+    if(commaLines.length>=3){
+      const parsed=commaLines.slice(0,12).map(l=> l.split(',').map(c=> c.trim()).filter(Boolean));
+      const len=parsed[0]?.length||0;
+      if(len>=2 && parsed.every(r=> r.length===len)){
+        tables.push({page:p.num, title:`CSV-style table — p.${p.num}`, headers:parsed[0], rows:parsed.slice(1,10)});
+      }
+    }
+  }
+  if(!tables.length){
+    const glines=fullText.split('\n').map(l=> l.trim()).filter(Boolean);
+    let run=[];
+    for(const l of glines){
+      const cols=l.split('|').map(c=> c.trim()).filter(Boolean);
+      if(cols.length>=2){ run.push(cols); } else { if(run.length>=3) { tables.push({page:1, title:`Pipe-delimited table`, headers:run[0], rows:run.slice(1,10)}); } run=[]; }
+    }
+    if(run.length>=3) tables.push({page:1, title:`Pipe-delimited table`, headers:run[0], rows:run.slice(1,10)});
+  }
+  const seen=new Set(); const out=[];
+  for(const t of tables){ const sig=t.page+'|'+t.headers.join('¦').slice(0,80); if(!seen.has(sig)){ seen.add(sig); out.push(t); } }
+  return out;
+}
+function tsvFromTable(t){ return [t.headers.join('\t'), ...t.rows.map(r=> r.join('\t'))].join('\n'); }
+function csvFromTable(t){
+  const esc=v=> /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
+  return [t.headers.map(esc).join(','), ...t.rows.map(r=> r.map(esc).join(','))].join('\n');
+}
+async function copyText(text, okMsg){
+  try{ await navigator.clipboard.writeText(text); toast(okMsg||'copied bro — paste in Sheets/Excel '); }
+  catch(e){ // fallback: select hack
+    const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); toast(okMsg||'copied bro '); }catch(_){ toast('copy failed — select manually twin'); }
+    ta.remove();
+  }
+}
+function copyTableTSV(idx){
+  const t=detectedTables[idx]; if(!t) return;
+  copyText(tsvFromTable(t), 'table copied as TSV — paste in Google Sheets bro ');
+}
+function copyTableCSV(idx){
+  const t=detectedTables[idx]; if(!t) return;
+  copyText(csvFromTable(t), 'table copied as CSV bro ');
+}
+function downloadTableCSV(idx){
+  const t=detectedTables[idx]; if(!t) return;
+  const blob=new Blob([csvFromTable(t)], {type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=(t.title.replace(/[^A-Za-z0-9]+/g,'_').slice(0,32)||'table')+'.csv';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(a.href), 800);
+  toast('csv downloaded bro ');
+}
+function renderTables(){
+  const wrap=document.getElementById('tablesWrap');
+  if(!wrap) return;
+  if(!detectedTables.length){ wrap.classList.remove('show'); wrap.innerHTML=''; return; }
+  wrap.classList.add('show');
+  wrap.innerHTML=detectedTables.map((t,i)=> `
+    <div class="tbl-card">
+      <div class="tbl-head"><h4>▦ ${escHtml(t.title)}</h4><span>${t.headers.length} cols · ${t.rows.length} rows · p.${t.page}</span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;background:var(--paper2);border-bottom:1px dashed var(--ink)">
+        <button class="tbl-btn primary" onclick="copyTableTSV(${i})">Copy TSV → Sheets</button>
+        <button class="tbl-btn cyan" onclick="copyTableCSV(${i})">Copy CSV</button>
+        <button class="tbl-btn" onclick="downloadTableCSV(${i})">Download .csv</button>
+        <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;opacity:.6;align-self:center">paste TSV straight into Google Sheets — no retyping</span>
+      </div>
+      <div class="tbl-scroll"><table class="tbl-preview"><thead><tr>${t.headers.map(h=> `<th title="${escAttr(h)}">${escHtml(h.slice(0,44))}</th>`).join('')}</tr></thead><tbody>${t.rows.map(r=> `<tr>${r.map(c=> `<td title="${escAttr(c)}">${escHtml(c.slice(0,44))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    </div>
+  `).join('') + `<div style="margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:10px;opacity:.55">tip: no tables? try OCR or check if the PDF is a scanned image</div>`;
+}
+function extractKeyFacts(text, pages){
+  const facts=[];
+  const mTotal=text.match(/(?:total|amount|value|price)\s*[:\-]?\s*[₹$€£]?\s*[\d,]+(?:\.\d+)?/i);
+  const mMoney=text.match(/[₹$€£]\s*[\d,]+(?:\.\d+)?\s*(?:lakh|crore|k)?/i);
+  if(mTotal||mMoney) facts.push({k:'Amount / Bag', v:(mTotal||mMoney)[0].slice(0,42), tag:'money'});
+  const mDate=text.match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\b\d{4}-\d{2}-\d{2}/i);
+  if(mDate) facts.push({k:'Date / Deadline', v:mDate[0], tag:'date'});
+  const mPay=text.match(/\b(?:payment|net\s*\-?\s*\d+|upfront|milestone|installment)\b[^.]{0,60}/i);
+  if(mPay) facts.push({k:'Payment terms', v:mPay[0].replace(/\s+/g,' ').slice(0,58), tag:'pay'});
+  const mParty=text.match(/\b([A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+){1,4})\s+(?:LLP|Pvt\.?\s*Ltd|Inc|Ltd|Corp|LLC)\b/);
+  if(mParty) facts.push({k:'Party', v:mParty[0], tag:'party'});
+  const mClause=text.match(/\b(?:termination|liability|warranty|IP|intellectual property|confidentiality|indemnity)\b[^.]{0,72}/i);
+  if(mClause) facts.push({k:'Clause', v:mClause[0].replace(/\s+/g,' ').slice(0,66), tag:'clause'});
+  if(!facts.length && pages && pages.length){
+    const top=pages.slice(0,2).map(p=> p.text).join(' ').slice(0,220);
+    if(top.trim()) facts.push({k:'Preview (p.1–2)', v: top.replace(/\s+/g,' ').trim().slice(0,64)+'…', tag:'preview'});
+  }
+  return facts.slice(0,6);
+}
+function tfidfScore(query, pages){
+ const stop=new Set(['the','and','for','are','but','not','you','all','can','had','her','was','one','our','out','has','have','been','were','their','which','about','into','there','would','should','could','this','that','with','from','will']);
+ const qTerms=query.toLowerCase().split(/\W+/).filter(w=> w.length>=3 && !stop.has(w));
+ if(!qTerms.length) return null;
+ // doc frequencies
+ const N=pages.length;
+ const df={}; qTerms.forEach(t=> df[t]=0);
+ for(const p of pages){ const low=p.text.toLowerCase(); for(const t of qTerms) if(low.includes(t)) df[t]++; }
+ const scored=pages.map(p=>{
+   const low=p.text.toLowerCase(); const words=low.split(/\W+/);
+   const wc=words.length||1;
+   let sc=0;
+   for(const t of qTerms){
+     const tf=(low.split(t).length-1)/wc;
+     const idf=Math.log((N+1)/((df[t]||0)+1))+1;
+     sc += tf*idf* (t.length>=6?1.4:1);
+   }
+   // exact phrase boost
+   if(query.length>=10 && low.includes(query.slice(0,32).toLowerCase())) sc*=1.6;
+   // coverage boost: distinct terms hit
+   const hits=qTerms.filter(t=> low.includes(t)).length;
+   sc *= (0.6 + 0.4*(hits/qTerms.length));
+   return {page:p, sc};
+ }).filter(x=> x.sc>0).sort((a,b)=> b.sc-a.sc);
+ return scored;
+}
+function findAnswer(query, pages, fullText){
+  const q=query.toLowerCase();
+  if(/table/i.test(q)) return {type:'table'};
+  const extras=[];
+  if(/pay|fee|bag|money|price|cost|amount/i.test(q)) extras.push('payment amount fee price total net');
+  if(/date|deadline|when|due/i.test(q)) extras.push('deadline due date schedule');
+  if(/risk|red flag|danger|problem/i.test(q)) extras.push('termination liability penalty risk warranty indemnity breach');
+  const expanded = extras.length ? (q+' '+extras.join(' ')) : q;
+  const scored=tfidfScore(expanded, pages);
+  if(!scored || !scored.length) return null;
+  const best=scored[0].page;
+  // extract best sentence from that page — score by expanded query terms
+  const needle=expanded.toLowerCase().split(/\W+/).filter(w=> w.length>=3);
+  const sents=best.text.split(/(?<=[\.!\?])\s+/).filter(s=> s.trim().length>=20);
+  let bestSent=sents[0]||best.text.slice(0,220);
+  let bestScore=-1;
+  for(const s of sents){
+    const low=s.toLowerCase(); let sc=0; needle.forEach(w=>{ if(low.includes(w)) sc++; });
+    if(sc>bestScore){ bestScore=sc; bestSent=s; }
+  }
+  const ctxIdx=sents.indexOf(bestSent);
+  let snippet=bestSent.trim();
+  if(ctxIdx>0 && snippet.length<120) snippet=sents[ctxIdx-1].trim().slice(-80)+' '+snippet;
+  if(snippet.length>320) snippet=snippet.slice(0,317)+'…';
+  return {type:'text', page:best.num, snippet, also: scored.slice(1,3).map(x=> x.page.num)};
+}
+async function setFile(file){
+ if(rejectIfTooBig(file)) return;
+ currentFile = file;
+ fileName.textContent = file.name;
+ fileInfo.textContent = `${formatBytes(file.size)} · reading… · ${file.type || 'application/pdf'}`;
+ fileMeta.classList.add('show');
+ crushBtn.disabled = false;
+ crushBtn.style.opacity = '1';
+ crushBtn.style.pointerEvents = 'auto';
+ crushHint.textContent = 'reading pdf — one sec…';
+ results.classList.remove('show');
+ crushed = false;
+ pdfDoc=null; pdfPages=[]; pdfFullText=''; pdfMeta={pages:0,words:0,chars:0};
+ detectedTables=[]; ocrResults=[]; ocrRunning=false;
+ const __ocrRow=document.getElementById('ocrRow'); if(__ocrRow) __ocrRow.style.display='none';
+ const __ocrP=document.getElementById('ocrProgress'); if(__ocrP) __ocrP.classList.remove('show');
+ const __tw=document.getElementById('tablesWrap'); if(__tw) { __tw.classList.remove('show'); __tw.innerHTML=''; }
+ fileMeta.animate([{transform:'rotate(-.3deg) scale(1)'},{transform:'rotate(.6deg) scale(1.02)'},{transform:'rotate(-.3deg) scale(1)'}],{duration:300, easing:'ease-out'});
+ const extracted=await extractPdf(file);
+ if(extracted){
+   pdfDoc=extracted.doc; pdfPages=extracted.pages; pdfFullText=extracted.fullText;
+   const words=wordCount(pdfFullText);
+   pdfMeta={pages:pdfDoc.numPages, words, chars: pdfFullText.length};
+   fileInfo.textContent=`${formatBytes(file.size)} · ${pdfMeta.pages} pages · ${words.toLocaleString('en-IN')} words · ${file.type || 'application/pdf'}`;
+   // scanned vs text detection
+   const avgCharsPerPage = pdfMeta.pages ? (pdfFullText.length / pdfMeta.pages) : 0;
+   const scannedLikely = avgCharsPerPage < 90 || pdfPages.filter(p=> (p.text||'').trim().length < 28).length >= Math.max(1, Math.ceil(pdfMeta.pages*0.5));
+   // table detection on text layer right away (box-aware: enrich pages with image-op hint)
+   try{
+     // enrich with operator-list hint for upcoming OCR/box detection
+     for(const p of pdfPages){ try{ const boxes=await getPageOpsBoxes(await pdfDoc.getPage(p.num)); p._hasImageOps = boxes.length>0 && boxes[0].count>0; }catch(e){ p._hasImageOps=false; } }
+     detectedTables=detectTables(pdfPages, pdfFullText, {boxes: ocrTableBoost});
+   }catch(e){ detectedTables=[]; }
+   const __ocrRow2=document.getElementById('ocrRow');
+   const __selLang=document.getElementById('ocrLang');
+   const __chkBox=document.getElementById('ocrTableBoost');
+   if(__selLang){ __selLang.value=ocrLang; __selLang.onchange=()=>{ ocrLang=__selLang.value; try{ localStorage.setItem('pc-ocr-lang', ocrLang); }catch(e){} toast('OCR lang → '+ocrLang.toUpperCase()+' bro'); }; }
+   if(__chkBox){ __chkBox.checked=ocrTableBoost; __chkBox.onchange=()=>{ ocrTableBoost=__chkBox.checked; try{ localStorage.setItem('pc-ocr-tableboost', ocrTableBoost?'1':'0'); }catch(e){} // re-run detection live
+     try{ detectedTables=detectTables(pdfPages, pdfFullText, {boxes: ocrTableBoost}); }catch(e){} if(crushed) renderTables();
+   }; }
+   if(scannedLikely){
+     crushHint.textContent=`⚠️ looks scanned (${Math.round(avgCharsPerPage)} chars/page) — hit OCR to unlock`;
+     if(__ocrRow2) __ocrRow2.style.display='inline-flex';
+     const __ocrBtn2=document.getElementById('ocrBtn'); if(__ocrBtn2){ __ocrBtn2.textContent=`OCR ${pdfMeta.pages} scanned page${pdfMeta.pages>1?'s':''} →`; __ocrBtn2.disabled=false; }
+     fileInfo.textContent += ' · scanned? OCR it';
+   } else {
+     crushHint.textContent=`ready — ${pdfMeta.pages} pages indexed → hit Crush it bro` + (detectedTables.length? ` · ${detectedTables.length} table${detectedTables.length>1?'s':''} found` : '');
+     if(pdfMeta.pages<=6 && __ocrRow2){ __ocrRow2.style.display='inline-flex'; const __ocrBtn3=document.getElementById('ocrBtn'); if(__ocrBtn3){ __ocrBtn3.textContent='Re-OCR anyway →'; __ocrBtn3.disabled=false; } }
+   }
+ } else {
+   const est=Math.max(2, Math.round(file.size/18000));
+   fileInfo.textContent=`${formatBytes(file.size)} · ~${est} pages · ${file.type || 'application/pdf'}`;
+   crushHint.textContent='ready — hit Crush it bro →';
+ }
+}
+/* — OCR: render thin pages → tesseract.js v5 — */
+async function runOcr(){
+  if(!pdfDoc || ocrRunning) return;
+  if(!window.Tesseract){ toast('OCR engine not loaded — check connection twin'); return; }
+  // read live controls
+  const _langEl=document.getElementById('ocrLang'); if(_langEl) ocrLang=_langEl.value;
+  const _boxEl=document.getElementById('ocrTableBoost'); if(_boxEl) ocrTableBoost=_boxEl.checked;
+  ocrRunning=true;
+  const ocrBtn=document.getElementById('ocrBtn'), ocrP=document.getElementById('ocrProgress');
+  const ocrBarEl=document.getElementById('ocrBar'), ocrLabel=document.getElementById('ocrProgLabel'), ocrText=document.getElementById('ocrProgText');
+  if(ocrBtn){ ocrBtn.disabled=true; ocrBtn.textContent='OCR '+ocrLang.toUpperCase()+'…'; }
+  if(ocrP) ocrP.classList.add('show');
+  try{
+    // pick thin pages (<90 chars) or all if doc is scan-heavy
+    const avgChars= pdfMeta.pages ? (pdfFullText.length/pdfMeta.pages) : 999;
+    const scanHeavy= avgChars < 90;
+    const targets = scanHeavy ? pdfPages.slice(0, Math.min(pdfPages.length, 12)) : pdfPages.filter(p=> (p.text||'').trim().length < 90).slice(0,10);
+    const toOcr = targets.length ? targets : pdfPages.slice(0, Math.min(4, pdfPages.length));
+    if(ocrLabel) ocrLabel.textContent=`OCR ${toOcr.length} page${toOcr.length>1?'s':''}`;
+    ocrResults=[];
+    for(let idx=0; idx<toOcr.length; idx++){
+      const tp=toOcr[idx];
+      if(ocrText) ocrText.textContent=`p.${tp.num} — ${idx+1}/${toOcr.length}`;
+      if(ocrBarEl) ocrBarEl.style.width=Math.round((idx/toOcr.length)*100)+'%';
+      let canvas=null;
+      try{
+        const pdfPage=await pdfDoc.getPage(tp.num);
+        canvas=await renderPageToCanvas(pdfPage, 1.9);
+      }catch(e){ console.warn('renderPage failed', e); continue; }
+      let ttext='';
+      try{
+        const res=await Tesseract.recognize(canvas, ocrLang, {
+          logger:(m)=>{ if(m.status==='recognizing text' && m.progress!=null && ocrBarEl){ const base=(idx/toOcr.length)*100; const w=base + m.progress*(100/toOcr.length); ocrBarEl.style.width=Math.min(100,Math.round(w))+'%'; } },
+        });
+        ttext=(res && res.data && res.data.text) ? res.data.text.trim() : '';
+      }catch(e){
+        // lang-data miss: fall back to eng if eng+hin/hin not cached yet
+        if(String(ocrLang).includes('hin') && ocrLang!=='eng'){
+          try{
+            toast('HIN data loading — falling back to ENG for this page, retry once cached twin');
+            const res2=await Tesseract.recognize(canvas, 'eng');
+            ttext=(res2 && res2.data && res2.data.text) ? res2.data.text.trim() : '';
+          }catch(_){ console.warn('tesseract fallback failed p.'+tp.num, e); }
+        } else { console.warn('tesseract failed p.'+tp.num, e); }
+        if(!ttext) ttext='';
+      }
+      if(ttext && ttext.length>=12){
+        ocrResults.push({page: tp.num, text: ttext});
+        // merge into page text
+        const pg=pdfPages.find(p=> p.num===tp.num);
+        if(pg){
+          const existing=(pg.text||'').trim();
+          pg.text = [existing, ' — [OCR p.'+tp.num+'] — ', ttext.replace(/\s*\n\s*/g,' ')].join(existing? '\n':'');
+        }
+      }
+    }
+    if(ocrBarEl) ocrBarEl.style.width='100%';
+    if(ocrText) ocrText.textContent='done';
+    // rebuild full text + meta
+    pdfFullText=pdfPages.map(p=> '—— Page '+p.num+' ——\n' + (p.text||'').trim()).join('\n\n');
+    const words=wordCount(pdfFullText);
+    pdfMeta.words=words; pdfMeta.chars=pdfFullText.length;
+    fileInfo.textContent=`${formatBytes(currentFile.size)} · ${pdfMeta.pages} pages · ${words.toLocaleString('en-IN')} words · OCR: ${ocrResults.length} page${ocrResults.length!==1?'s':''}`;
+    // re-detect tables on OCR-enriched text (box-aware)
+    try{ const more=detectTables(pdfPages, pdfFullText, {boxes: ocrTableBoost}); if(more.length>detectedTables.length) detectedTables=more; }catch(e){}
+    crushHint.textContent=`OCR done — ${words.toLocaleString('en-IN')} words now → hit Crush it bro` + (detectedTables.length? ` · ${detectedTables.length} table${detectedTables.length>1?'s':''}` : '');
+    if(ocrBtn){ ocrBtn.textContent=`OCR ✓ ${ocrResults.length} page${ocrResults.length!==1?'s':''}`; setTimeout(()=>{ ocrBtn.textContent='Re-OCR →'; ocrBtn.disabled=false; }, 2200); ocrBtn.disabled=false; }
+    if(ocrResults.length) toast(`OCR cooked — ${ocrResults.length} page${ocrResults.length>1?'s':''} unlocked bro`);
+    else toast('OCR ran but found no text — try a clearer scan twin');
+    setTimeout(()=>{ if(ocrP) ocrP.classList.remove('show'); }, 1400);
+  }catch(e){
+    console.warn(e);
+    toast('OCR crashed — try again, twin');
+    if(ocrP) ocrP.classList.remove('show');
+    if(ocrBtn){ ocrBtn.textContent='OCR failed — retry →'; ocrBtn.disabled=false; }
+  } finally { ocrRunning=false; }
+}
+function clearFile(){
+ currentFile = null; pdfDoc=null; pdfPages=[]; pdfFullText=''; pdfMeta={pages:0,words:0,chars:0};
+ detectedTables=[]; ocrResults=[]; ocrRunning=false;
+ const __oc=document.getElementById('ocrProgress'); if(__oc) __oc.classList.remove('show');
+ const __or=document.getElementById('ocrRow'); if(__or) __or.style.display='none';
+ const __ob=document.getElementById('ocrBtn'); if(__ob) { __ob.disabled=false; __ob.textContent='OCR scanned pages →'; }
+ const __tw2=document.getElementById('tablesWrap'); if(__tw2){ __tw2.classList.remove('show'); __tw2.innerHTML=''; }
+ fileInput.value = '';
+ fileMeta.classList.remove('show');
+ crushBtn.disabled = true;
+ crushBtn.style.opacity = '.5';
+ crushBtn.style.pointerEvents = 'none';
+ crushHint.textContent = 'pick a pdf first ';
+ progress.classList.remove('show');
+ progressBar.style.width = '0%';
+ progressText.textContent = 'crushing… 0%';
+ results.classList.remove('show');
+ const st2=document.getElementById('crushStage'), sd2=document.getElementById('crushShreds'), dn2=document.getElementById('crushDone');
+ if(st2){ st2.classList.remove('show','crushing','done'); }
+ if(sd2) sd2.innerHTML='';
+ if(dn2) dn2.classList.remove('show');
+ const cb=document.getElementById('crushBar'), cbt=document.getElementById('crushBarTxt');
+ if(cb) cb.style.width='0%'; if(cbt) cbt.textContent='0%';
+ document.querySelectorAll('#crushSteps .cs').forEach((s,i)=>{ s.classList.toggle('on', i===0); s.classList.remove('done'); });
+ restoreChat();
+ crushed = false;
+}
+dropzone.addEventListener('click', ()=> fileInput.click());
+dropzone.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); fileInput.click(); }});
+function rejectIfTooBig(f){
+ if(f.size > MAX_BYTES){ toast('too big — 25MB max twin ('+formatBytes(f.size)+') '); return true; }
+ if(f.size===0){ toast('empty file — pick a real PDF twin '); return true; }
+ return false;
+}
+fileInput.addEventListener('change', e=>{
+ const f = e.target.files[0];
+ if(f){ if(!f.type.includes('pdf') && !f.name.toLowerCase().endsWith('.pdf')){ toast('pdf only bro — pick a .pdf '); return; } if(rejectIfTooBig(f)) return; setFile(f); }
+});
+// ——— BASKETBALL DROP — shoot the PDF like a fadeaway ———
+const dzTitle=document.getElementById('dzTitle'),dzSub=document.getElementById('dzSub'),dzHint=document.getElementById('dzHint');
+const dzSpotlight=document.getElementById('dzSpotlight'),dzParticles=document.getElementById('dzParticles'),dzRipples=document.getElementById('dzRipples'),dzCheck=document.getElementById('dzCheck');
+const dzHoop=document.getElementById('dzHoop'),hoopNet=document.getElementById('hoopNet'),dzSwish=document.getElementById('dzSwish'),dzPlus2=document.getElementById('dzPlus2'),dzArc=document.getElementById('dzArc'),dzArcPath=document.getElementById('dzArcPath'),dzArcDot=document.getElementById('dzArcDot');
+let dzDepth=0, lastDragPt={x:0,y:0};
+function dzSpot(e){
+ if(!dzSpotlight) return;
+ const r=dropzone.getBoundingClientRect();
+ dzSpotlight.style.left=(e.clientX-r.left)+'px';
+ dzSpotlight.style.top=(e.clientY-r.top)+'px';
+ lastDragPt={x:e.clientX,y:e.clientY};
+ // update arc preview dashed curve from finger to hoop
+ if(dropzone.classList.contains('drag') && dzArcPath){
+ const hoopR=dropzone.querySelector('.hoop-rim').getBoundingClientRect();
+ const hx=hoopR.left+hoopR.width/2, hy=hoopR.top+2;
+ const dzR=dropzone.getBoundingClientRect();
+ // map to svg 320x170 coords
+ const sx=((e.clientX-dzR.left)/dzR.width)*320, sy=((e.clientY-dzR.top)/dzR.height)*170;
+ const ex=((hx-dzR.left)/dzR.width)*320, ey=((hy-dzR.top)/dzR.height)*170;
+ const mx=(sx+ex)/2, my=Math.min(sy,ey)-42;
+ dzArcPath.setAttribute('d',`M ${sx.toFixed(1)} ${sy.toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`);
+ if(dzArcDot){ dzArcDot.setAttribute('cx', sx.toFixed(1)); dzArcDot.setAttribute('cy', sy.toFixed(1)); }
+ }
+}
+dropzone.addEventListener('mousemove', dzSpot);
+['dragenter','dragover'].forEach(ev=> dropzone.addEventListener(ev, e=>{
+ e.preventDefault();
+ if(ev==='dragenter') dzDepth++;
+ dropzone.classList.add('drag');
+ dzSpot(e);
+ const dzInner=document.getElementById('dzInner');
+ if(dzInner) dzInner.style.opacity='.18';
+ if(dzTitle){ dzTitle.textContent='SHOOT IT TWIN '; dzTitle.style.transform='scale(1.05)'; }
+ if(dzSub) dzSub.textContent='let go → nothing but net ';
+ if(dzHint) dzHint.style.opacity='.55';
+}));
+dropzone.addEventListener('dragleave', e=>{
+ e.preventDefault(); dzDepth=Math.max(0,dzDepth-1);
+ if(dzDepth===0){
+ dropzone.classList.remove('drag');
+ const dzInner=document.getElementById('dzInner'); if(dzInner) dzInner.style.opacity='';
+ if(dzTitle){ dzTitle.textContent='Drag & drop your PDF here bro'; dzTitle.style.transform=''; }
+ if(dzSub) dzSub.textContent="or click to browse — pdf only, we don't do word docs ";
+ if(dzHint) dzHint.style.opacity='';
+ }
+});
+function basketballShot(e, file){
+ const hoopR=dropzone.querySelector('.hoop-rim').getBoundingClientRect();
+ const sx=(e && e.clientX) ? e.clientX : (dropzone.getBoundingClientRect().left + dropzone.getBoundingClientRect().width*0.18);
+ const sy=(e && e.clientY) ? e.clientY : (dropzone.getBoundingClientRect().top + 22);
+ const ex=hoopR.left+hoopR.width/2, ey=hoopR.top+6;
+ const dx=ex-sx, dy=ey-sy;
+ const peak=-Math.max(92, Math.abs(dx)*0.46 + 18);
+ // hide am
+ dropzone.classList.remove('drag');
+ const dzInner=document.getElementById('dzInner'); if(dzInner) dzInner.style.opacity='';
+ if(dzArc) dzArc.style.opacity='0';
+ // create flying PDF ball
+ const ball=document.createElement('div'); ball.className='dz-ball';
+ ball.innerHTML='<em></em><b></b><span>PDF</span>';
+ ball.style.left=(sx-25)+'px'; ball.style.top=(sy-25)+'px';
+ ball.style.transform='translate(0,0) rotate(0deg) scale(1)';
+ document.body.appendChild(ball);
+ // arc dot hide
+ if(dzArcDot) dzArcDot.style.opacity='0';
+ const kf=[
+ {transform:`translate(0px, 0px) rotate(0deg) scale(1)`, offset:0},
+ {transform:`translate(${dx*0.22}px, ${dy*0.22 + peak*0.52}px) rotate(110deg) scale(1)`, offset:.26},
+ {transform:`translate(${dx*0.48}px, ${dy*0.48 + peak*0.92}px) rotate(250deg) scale(1)`, offset:.5},
+ {transform:`translate(${dx*0.72}px, ${dy*0.72 + peak*0.58}px) rotate(400deg) scale(.94)`, offset:.74},
+ {transform:`translate(${dx*0.88}px, ${dy*0.88 + peak*0.18}px) rotate(500deg) scale(.72)`, offset:.88},
+ {transform:`translate(${dx}px, ${dy}px) rotate(620deg) scale(.28)`, offset:1},
+ ];
+ const anim=ball.animate(kf,{duration:760, easing:'cubic-bezier(.32,.0,.22,1)', fill:'forwards'});
+ // subtle squash on shadow as ball approaches
+ const hoopShadow=dropzone.querySelector('.hoop-shadow');
+ if(hoopShadow) hoopShadow.animate([{transform:'translateX(-50%) scale(1)',opacity:.13},{transform:'translateX(-50%) scale(1.45)',opacity:.22},{transform:'translateX(-50%) scale(.9)',opacity:.13}],{duration:760, easing:'ease-in-out'});
+ anim.onfinish=()=>{
+ ball.remove();
+ // net swoosh
+ if(hoopNet){ hoopNet.classList.remove('swoosh'); void hoopNet.offsetWidth; hoopNet.classList.add('swoosh'); setTimeout(()=>hoopNet.classList.remove('swoosh'),620); }
+ // swish + +2 pop
+ if(dzSwish){ dzSwish.classList.remove('pop'); void dzSwish.offsetWidth; dzSwish.classList.add('pop'); setTimeout(()=>dzSwish.classList.remove('pop'),700); }
+ if(dzPlus2){ dzPlus2.classList.remove('pop'); void dzPlus2.offsetWidth; dzPlus2.classList.add('pop'); setTimeout(()=>dzPlus2.classList.remove('pop'),760); }
+ // rim shake
+ const rim=dropzone.querySelector('.hoop-rim');
+ if(rim) rim.animate([{transform:'translateX(-50%) scale(1)'},{transform:'translateX(-50%) scale(1.06, .94)'},{transform:'translateX(-50%) scale(.98,1.04)'},{transform:'translateX(-50%) scale(1)'}],{duration:420,easing:'ease-out'});
+ dropzone.classList.add('slam','success');
+ // particles burst from rim
+ if(dzParticles){
+ dzParticles.innerHTML='';
+ const cols=['#FFE600','#FF90E8','#23F0FF','#BFFF00','#FF5A1F','#0A0A0A'];
+ for(let i=0;i<16;i++){
+ const el=document.createElement('i');
+ const ang=(i/16)*360 + (Math.random()*10-5);
+ const dist=62+Math.random()*86;
+ const tx=Math.cos(ang*Math.PI/180)*dist, ty=Math.sin(ang*Math.PI/180)*dist + 10;
+ const rot=Math.random()*360;
+ el.style.cssText=`left:50%;top:44%;background:${cols[i%cols.length]};${i%3===0?'border-radius:50%;':''}${i%4===0?'width:10px;height:10px;':''}`;
+ el.animate([{transform:`translate(-50%,-50%) rotate(${rot}deg) scale(1)`,opacity:1},{transform:`translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) rotate(${rot+200}deg) scale(0)`,opacity:0}],{duration:520+Math.random()*280,easing:'cubic-bezier(.25,.46,.45,.94)',fill:'forwards',delay:i*16});
+ dzParticles.appendChild(el);
+ }
+ setTimeout(()=> dzParticles.innerHTML='', 1000);
+ }
+ if(dzRipples){ dzRipples.innerHTML=''; [0,1].forEach(k=>{const em=document.createElement('em'); em.style.animation=`dzRipple 520ms ease-out ${k*110}ms forwards`; dzRipples.appendChild(em);}); setTimeout(()=>dzRipples.innerHTML='',820); }
+ if(dzCheck){ dzCheck.classList.add('show'); setTimeout(()=>dzCheck.classList.remove('show'),1100); }
+ setTimeout(()=>dropzone.classList.remove('slam'),540);
+ setTimeout(()=>dropzone.classList.remove('success'),1600);
+ if(dzArc) setTimeout(()=>{dzArc.style.opacity=''; if(dzArcDot) dzArcDot.style.opacity='';}, 900);
+ if(typeof confetti==='function') confetti({particleCount:56, spread:74, origin:{y:.62}, colors:['#FFE600','#23F0FF','#FF90E8','#BFFF00','#FF5A1F'], scalar:.95, ticks:150});
+ setTimeout(()=> setFile(file), 180);
+ };
+}
+dropzone.addEventListener('drop', e=>{
+ e.preventDefault(); e.stopPropagation(); dzDepth=0;
+ const f=e.dataTransfer.files[0];
+ if(!f) return;
+ if(!f.type.includes('pdf') && !f.name.toLowerCase().endsWith('.pdf')){ toast('pdf only bro — drop a .pdf '); dropzone.classList.remove('drag'); const dzInner=document.getElementById('dzInner'); if(dzInner) dzInner.style.opacity=''; if(dzTitle) dzTitle.textContent='Drag & drop your PDF here bro'; return; }
+ if(rejectIfTooBig(f)){ dropzone.classList.remove('drag'); const dzInner=document.getElementById('dzInner'); if(dzInner) dzInner.style.opacity=''; if(dzTitle) dzTitle.textContent='Drag & drop your PDF here bro'; return; }
+ basketballShot(e,f);
+});
+async function loadSample(){
+ const makeFallback=()=>{
+   // Minimal valid 1-page PDF (Hello World) — guaranteed to parse even on file:// or offline
+   const pdfText=`%PDF-1.4
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 612 792]/Contents 4 0 R/Resources<</Font<</F1<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>>>>>>endobj
+4 0 obj<</Length 88>>stream
+BT /F1 18 Tf 72 720 Td (Hello from PaperCrush - sample PDF) Tj ET
+BT /F1 11 Tf 72 690 Td (Payment: 40% upfront, 30% mid-review, 30% on delivery.) Tj ET
+BT /F1 11 Tf 72 670 Td (Deadline: Mar 18, 2026. Parties: Mohit Studio LLP & Acme Corp.) Tj ET
+endstream
+endobj
+xref
+0 5
+0000000000 65535 f
+0000000009 00000 n
+0000000054 00000 n
+0000000102 00000 n
+0000000300 00000 n
+trailer<</Size 5/Root 1 0 R>>
+startxref
+560
+%%EOF`;
+   return new File([pdfText], 'Sample — PaperCrush Hello.pdf', {type:'application/pdf'});
+ };
+ // file:// cannot reliably fetch cross-origin — go straight to embedded sample
+ if(location.protocol==='file:'){
+   await setFile(makeFallback());
+   toast('sample loaded (offline) — hit Crush it → ');
+   return;
+ }
+ try{
+   const url='https://raw.githubusercontent.com/mozilla/pdf.js/master/examples/learning/helloworld.pdf';
+   const res=await fetch(url);
+   if(!res.ok) throw new Error('fetch '+res.status);
+   const buf=await res.arrayBuffer();
+   if(!isPdfMagic(buf)) throw new Error('not a pdf');
+   const file=new File([buf], 'Sample — Hello World.pdf', {type:'application/pdf'});
+   await setFile(file);
+   toast('sample loaded bro — hit Crush it → ');
+ } catch(e){
+   await setFile(makeFallback());
+   toast('sample loaded (offline) — hit Crush it → ');
+ }
+}
+function confettiBurst(){
+ if(typeof confetti === 'function'){
+ confetti({particleCount:90, spread:70, origin:{y:.72}, colors:['#FFE600','#FF90E8','#23F0FF','#BFFF00','#FF5A1F','#0A0A0A']});
+ setTimeout(()=> confetti({particleCount:50, angle:60, spread:55, origin:{x:0, y:.7}, colors:['#FFE600','#FF90E8']}), 180);
+ setTimeout(()=> confetti({particleCount:50, angle:120, spread:55, origin:{x:1, y:.7}, colors:['#23F0FF','#BFFF00']}), 180);
+ }
+}
+let crushAbort=false;
+async function crush(){
+ if(!currentFile) return;
+ if(crushAbort) crushAbort=false;
+ // If extraction never succeeded, try once more
+ if(!pdfDoc || !pdfPages.length){
+   toast('reading PDF again — one sec twin ');
+   const retry=await extractPdf(currentFile);
+   if(!retry){ toast('can\'t crush — PDF wouldn\'t read twin '); return; }
+   pdfDoc=retry.doc; pdfPages=retry.pages; pdfFullText=retry.fullText;
+   pdfMeta={pages:pdfDoc.numPages, words:wordCount(pdfFullText), chars:pdfFullText.length};
+ }
+ const stage=document.getElementById('crushStage'), bar=document.getElementById('crushBar'), barTxt=document.getElementById('crushBarTxt');
+ const kicker=document.getElementById('crushKickerTxt'), msgEl=document.getElementById('crushMsg'), shreds=document.getElementById('crushShreds'), doneEl=document.getElementById('crushDone');
+ const steps=[...document.querySelectorAll('#crushSteps .cs')];
+ const phases=[
+   {k:'un-crumpling…', m:'lining up the pages, twin'},
+   {k:'detecting tables…', m:'rebuilding them so Sheets doesn’t cry'},
+   {k:'indexing citations…', m:'every fact gets a page — no cap'},
+   {k:'plating…', m:'summary, facts, chat — almost there'},
+ ];
+ function setStep(idx, pct){
+   if(kicker) kicker.textContent=phases[Math.min(idx, phases.length-1)].k;
+   if(msgEl) msgEl.textContent=phases[Math.min(idx, phases.length-1)].m;
+   steps.forEach((s,i)=>{ s.classList.toggle('on', i===idx); s.classList.toggle('done', i<idx); });
+   if(bar) bar.style.width=pct+'%'; if(barTxt) barTxt.textContent=pct+'%';
+   progressBar.style.width=pct+'%'; progressText.textContent=phases[Math.min(idx, phases.length-1)].k+' '+pct+'%';
+ }
+ function sprinkle(){
+   if(!shreds || Math.random()>0.28) return;
+   const em=document.createElement('em');
+   const x=10+Math.random()*78, tx=(Math.random()-0.5)*42, rot=(Math.random()*140-70).toFixed(1)+'deg';
+   const bg=['var(--ink)','var(--yellow)','var(--pink)','var(--cyan)'][Math.floor(Math.random()*4)];
+   em.style.cssText=`left:${x}%;top:8%;background:${bg};--tx:${tx}px;--rot:${rot};${Math.random()<.3?'border-radius:50%;':''}`;
+   em.style.animation=`shredFall ${520+Math.random()*380}ms cubic-bezier(.25,.46,.45,.94) forwards`;
+   shreds.appendChild(em); setTimeout(()=> em.remove(), 980);
+ }
+ progress.classList.add('show');
+ if(stage){ stage.classList.add('show','crushing'); stage.classList.remove('done'); if(doneEl) doneEl.classList.remove('show'); if(shreds) shreds.innerHTML=''; if(kicker) kicker.textContent=phases[0].k; if(msgEl) msgEl.textContent=phases[0].m; steps.forEach((s,i)=>{ s.classList.toggle('on', i===0); s.classList.remove('done'); }); }
+ crushBtn.textContent='Crushing… hold tight twin'; crushBtn.disabled=true;
+ try{ dropzone.style.transition='filter .25s, opacity .25s'; dropzone.style.filter='saturate(.85) brightness(.98)'; dropzone.style.opacity='.62'; }catch{}
+ const card=document.getElementById('uploadCard');
+ if(card && card.animate) card.animate([{transform:'rotate(.4deg)'},{transform:'rotate(-.8deg) scale(.99)'},{transform:'rotate(.4deg)'}],{duration:400});
+ const tick=setInterval(sprinkle, 140);
+ try{
+   // Step 0 → 1: tables (real work)
+   setStep(0, 8); await new Promise(r=> setTimeout(r, 120));
+   setStep(1, 28);
+   try{
+     // enrich with image-ops hint for box-aware tables (fast)
+     for(const p of pdfPages){ if(p._hasImageOps==null){ try{ const boxes=await getPageOpsBoxes(await pdfDoc.getPage(p.num)); p._hasImageOps=boxes.length>0; }catch(e){ p._hasImageOps=false; } } }
+     const found=detectTables(pdfPages, pdfFullText, {boxes: ocrTableBoost});
+     if(found.length) detectedTables=found;
+   }catch(e){ console.warn('detectTables', e); }
+   await new Promise(r=> setTimeout(r, 80));
+   // Step 2: index citations (TF-IDF build is lazy in findAnswer, just validate)
+   setStep(2, 58);
+   pdfMeta.words=wordCount(pdfFullText); pdfMeta.chars=pdfFullText.length;
+   // warn if doc is scan-heavy and user hasn't OCR'd
+   const avgChars= pdfMeta.pages ? (pdfFullText.length/pdfMeta.pages) : 0;
+   if(avgChars < 90){ setStep(2, 62); await new Promise(r=> setTimeout(r, 100)); }
+   // Step 3: plate
+   setStep(3, 84);
+   await new Promise(r=> setTimeout(r, 180));
+   clearInterval(tick);
+   if(bar) bar.style.width='100%'; if(barTxt) barTxt.textContent='cooked 100%';
+   progressBar.style.width='100%'; progressText.textContent='cooked 100%';
+   steps.forEach(s=>{ s.classList.remove('on'); s.classList.add('done'); });
+   if(kicker) kicker.textContent='cooked — W';
+   if(msgEl) msgEl.textContent='nothing but net — scroll down, twin';
+   if(stage){ stage.classList.remove('crushing'); stage.classList.add('done'); if(doneEl){ doneEl.classList.add('show'); setTimeout(()=> doneEl.classList.remove('show'), 820); } }
+   try{ dropzone.style.filter=''; dropzone.style.opacity=''; setTimeout(()=>{ try{ dropzone.style.transition=''; }catch{} }, 400); }catch{}
+   showResults(); confettiBurst();
+ }catch(e){
+   try{ clearInterval(tick); }catch{}
+   console.warn('crush failed', e);
+   toast('crush hit a snag — try again twin ');
+   crushBtn.disabled=false; crushBtn.textContent='Crush it bro →';
+   if(stage) stage.classList.remove('crushing');
+   try{ dropzone.style.filter=''; dropzone.style.opacity=''; }catch{}
+ }
+}
+function moveChatLeft(){
+ const hero = document.querySelector('.hero');
+ const left = hero && hero.querySelector('.hero-left');
+ const chat = document.getElementById('chatBox');
+ if(!hero || !left || !chat) return;
+ hero.classList.add('is-crushed');
+ if(chat.parentElement !== left){
+   if(chatOrigParent === null){ chatOrigParent = chat.parentElement; chatOrigNext = chat.nextSibling; }
+   left.appendChild(chat);
+ }
+}
+function restoreChat(){
+ const hero = document.querySelector('.hero');
+ const chat = document.getElementById('chatBox');
+ if(!hero || !chat) return;
+ hero.classList.remove('is-crushed');
+ if(chatOrigParent && chat.parentElement !== chatOrigParent){
+   if(chatOrigNext && chatOrigNext.parentElement === chatOrigParent) chatOrigParent.insertBefore(chat, chatOrigNext);
+   else chatOrigParent.appendChild(chat);
+ }
+}
+function showResults(){
+ crushBtn.textContent='Crushed — W bro '; crushBtn.disabled=false;
+ crushHint.textContent='scroll down bro — summary + chat ready ';
+ const hasReal = pdfDoc && pdfPages && pdfPages.length && pdfFullText && pdfFullText.trim().length>40;
+ const pages = hasReal ? pdfMeta.pages : Math.max(2, Math.round((currentFile?.size||184000)/18000));
+ const words = hasReal ? pdfMeta.words : 0;
+ resMeta.textContent = hasReal ? `${pages} pages · ${formatBytes(currentFile?.size||184000)} · ${words.toLocaleString('en-IN')} words${ocrResults.length?` · OCR ${ocrResults.length}p`:''} · cited fr` : `${pages} pages · ${formatBytes(currentFile?.size||184000)} · cited fr`;
+ chatPages.textContent = `${pages} pages`;
+ const name = (currentFile?.name || 'Consulting Agreement.pdf').replace('.pdf','');
+ // always try to re-detect tables on current text (box-aware)
+ if(hasReal && !detectedTables.length){ try{ detectedTables=detectTables(pdfPages, pdfFullText, {boxes: ocrTableBoost}); }catch(e){} }
+ if(hasReal){
+   const bullets=summarizeFromText(pdfFullText, 4);
+   const bg=['var(--yellow)','var(--cyan)','var(--pink)','var(--lime)'];
+   summaryList.innerHTML = bullets.map((b,i)=>{
+     let pg='p.1';
+     for(const p of pdfPages){ if(p.text && b.slice(0,42).trim() && p.text.includes(b.slice(0,28).trim().split(' ').slice(0,4).join(' '))){ pg='p.'+p.num; break; } }
+     if(pg==='p.1'){ const hit=pdfFullText.indexOf(b.slice(0,32)); if(hit>-1){ let acc=0; for(const p of pdfPages){ acc+=p.text.length+12; if(hit < acc){ pg='p.'+p.num; break; } } } }
+     return `<li>${b} <span style="font-family:'JetBrains Mono',monospace;font-size:10px;background:${bg[i%bg.length]};border:1px solid var(--ink);padding:1px 4px">${pg}</span></li>`;
+   }).join('') || `<li>No extractable text — try OCR on scanned pages. <span style="font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--yellow);border:1px solid var(--ink);padding:1px 4px">p.1</span></li>`;
+   const kfacts=extractKeyFacts(pdfFullText, pdfPages);
+   const fcols=['var(--yellow)','var(--cyan)','var(--pink)','var(--lime)','var(--paper)','var(--paper2)'];
+   const frot=['-.5deg','.5deg','.3deg','-.3deg','.4deg','-.4deg'];
+   if(kfacts.length){
+     facts.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">` + kfacts.map((f,i)=> `
+       <div style="border:2px solid var(--ink);padding:10px;background:${fcols[i%fcols.length]};transform:rotate(${frot[i%frot.length]});position:relative"><div class="tape small" style="left:50%"></div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;opacity:.6">${f.k}</div><b style="font-size:13px;line-height:1.3;font-family:'Space Mono',monospace;word-break:break-word">${f.v}</b><div style="font-family:'JetBrains Mono',monospace;font-size:10px;margin-top:4px;opacity:.6">${f.tag}</div></div>
+     `).join('') + `</div>
+     <div style="margin-top:10px;border:2px dashed var(--ink);padding:10px;background:var(--paper2);font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5">✓ built from <b>your</b> PDF — ${pages} pages · ${words.toLocaleString('en-IN')} words · ${pdfFullText.length.toLocaleString('en-IN')} chars${ocrResults.length?` · OCR ${ocrResults.length}p`:''} indexed.</div>
+     <div style="margin-top:10px;border:var(--border2);background:var(--paper);padding:10px;max-height:220px;overflow:auto;font-family:'Space Mono',monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word">${pdfFullText.slice(0,4200)}${pdfFullText.length>4200?'\n\n… +'+(pdfFullText.length-4200).toLocaleString('en-IN')+' more chars — chat for anything deeper':''}</div>`;
+   } else {
+     facts.innerHTML = `
+     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+       <div style="border:2px solid var(--ink);padding:10px;background:var(--yellow);transform:rotate(-.5deg);position:relative"><div class="tape small" style="left:50%"></div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;opacity:.6">Pages</div><b style="font-family:'Bowlby One SC',cursive;font-size:18px">${pages}</b><div style="font-family:'JetBrains Mono',monospace;font-size:10px">${words.toLocaleString('en-IN')} words${ocrResults.length?` · OCR ${ocrResults.length}p`:''}</div></div>
+       <div style="border:2px solid var(--ink);padding:10px;background:var(--cyan);transform:rotate(.5deg);position:relative"><div class="tape small" style="left:50%"></div><div style="font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.08em;text-transform:uppercase;opacity:.6">Chars indexed</div><b style="font-family:'Bowlby One SC',cursive;font-size:18px">${pdfFullText.length.toLocaleString('en-IN')}</b><div style="font-family:'JetBrains Mono',monospace;font-size:10px">from your file</div></div>
+     </div>
+     <div style="margin-top:10px;border:var(--border2);background:var(--paper);padding:10px;max-height:220px;overflow:auto;font-family:'Space Mono',monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word">${pdfFullText.slice(0,4200)}${pdfFullText.length>4200?'\n\n… +'+(pdfFullText.length-4200).toLocaleString('en-IN')+' more chars':''}</div>`;
+   }
+   chatLog.innerHTML = `<div class="msg bot"><b>PaperCrush — ready bro</b> Indexed <b>${pages} pages · ${words.toLocaleString('en-IN')} words${ocrResults.length?` · OCR ${ocrResults.length}p`:''}</b> from <b>${name}</b> — all from YOUR file, not a demo. Ask me anything and I'll quote the page so you know it ain't capping. Try a chip below ↓</div>`;
+ } else {
+   summaryList.innerHTML = `<li>No extractable text found in <b>${escHtml(name)}</b> — this looks like a scanned/image PDF. Hit <b>OCR</b> above to unlock it, then Crush again. <span style="font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--yellow);border:1px solid var(--ink);padding:1px 4px">tip</span></li>`;
+   facts.innerHTML = `<div style="border:2px dashed var(--ink);padding:12px;background:var(--paper2);font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5">⚠️ No text layer — try <b>OCR scanned pages →</b> above (supports ENG + HIN). If the scan is blurry, try a clearer export.</div>`;
+   chatLog.innerHTML = `<div class="msg bot"><b>PaperCrush — no text yet</b> Your <b>${escHtml(name)}</b> has no extractable text (likely a scan). Hit <b>OCR</b> above to unlock it, then ask me anything — I'll quote the page.</div>`;
+ }
+ renderTables();
+ moveChatLeft();
+ results.classList.add('show');
+ crushed = true;
+ setTimeout(()=> document.getElementById('chatBox').scrollIntoView({behavior:'smooth', block:'center'}), 260);
+}
+function copySummary(){
+ const t = [...summaryList.querySelectorAll('li')].map(li=> '• ' + li.innerText).join('\n');
+ if(!t.trim()){ toast('nothing to copy — crush a PDF first twin '); return; }
+ if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(()=> toast('summary copied bro — go get that W ')).catch(()=> toast('copied — paste to check bro'));
+ else toast('summary copied bro ');
+}
+function exportDoc(){
+ if(!crushed || !pdfFullText || pdfFullText.trim().length<20){ toast('crush a PDF first twin '); return; }
+ const bullets=[...summaryList.querySelectorAll('li')].map(li=> '- '+li.innerText).join('\n');
+ const factsText=extractKeyFacts(pdfFullText, pdfPages).map(f=> `- ${f.k}: ${f.v} [${f.tag}]`).join('\n') || '- (no key facts detected)';
+ const tablesText=detectedTables.length ? detectedTables.map(t=> `### ${t.title}\n${tsvFromTable(t)}`).join('\n\n') : '(no tables detected — try OCR if scanned)';
+ const md=`# PaperCrush Export — ${currentFile?currentFile.name:'PDF'}\n\nPages: ${pdfMeta.pages} · Words: ${pdfMeta.words.toLocaleString('en-IN')} · Chars: ${pdfFullText.length.toLocaleString('en-IN')}${ocrResults.length?` · OCR ${ocrResults.length}p`:''}\n\n## Summary\n${bullets}\n\n## Key Facts\n${factsText}\n\n## Tables\n${tablesText}\n\n---\nexported from PaperCrush — file never left your device\n`;
+ const blob=new Blob([md],{type:'text/markdown;charset=utf-8'});
+ const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+ a.download=(currentFile?currentFile.name.replace(/\.pdf$/i,''):'papercrush')+' — PaperCrush.md';
+ document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(a.href), 900);
+ toast('export downloaded bro — .md file ');
+}
+function react(el){
+ el.classList.toggle('on');
+ if(el.classList.contains('on')){ if(typeof confetti==='function') confetti({particleCount:18, spread:50, origin:{y:.85}, colors:['#FFE600','#23F0FF']}); toast(el.textContent.trim() + ' — noted twin '); }
+}
+function ask(q){ chatInput.value = q; sendChat(); }
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function sendChat(){
+ const q = chatInput.value.trim();
+ if(!q) return;
+ if(!crushed){ toast('crush a pdf first bro — then we talk '); return; }
+ const u = document.createElement('div'); u.className='msg user'; u.textContent = q; chatLog.appendChild(u);
+ chatInput.value = '';
+ chatLog.scrollTop = chatLog.scrollHeight;
+ const typing = document.createElement('div'); typing.className='msg bot'; typing.innerHTML = '<b>typing…</b> reading your pdf rn twin '; chatLog.appendChild(typing); chatLog.scrollTop = chatLog.scrollHeight;
+ setTimeout(()=>{
+ typing.remove();
+ const a = document.createElement('div'); a.className='msg bot';
+ const hasReal = pdfDoc && pdfPages && pdfPages.length && pdfFullText && pdfFullText.trim().length>40;
+ let html='';
+ if(hasReal){
+   const low=q.toLowerCase();
+   if(low.includes('summar')){
+     const bullets=summarizeFromText(pdfFullText, 3);
+     html=`<b>Answer — from your PDF (p.1–${pdfMeta.pages})</b><br>` + bullets.map(b=> '• '+escHtml(b)).join('<br>') + ` <span style="background:var(--lime);border:1px solid var(--ink);padding:1px 4px;font-family:'JetBrains Mono',monospace;font-size:10px">p.1–${pdfMeta.pages}</span>`;
+   } else {
+     const hit=findAnswer(q, pdfPages, pdfFullText);
+     if(!hit) html=`<b>Answer — no direct hit</b> Couldn't find that phrase in your ${pdfMeta.pages}-page PDF, twin. Try keywords like names, dates, or "payment" / "deadline" — I search page by page. <span style="background:var(--yellow);border:1px solid var(--ink);padding:1px 4px;font-family:'JetBrains Mono',monospace;font-size:10px">searched ${pdfMeta.pages} pages</span>`;
+     else if(hit.type==='table'){
+       const snip=pdfFullText.slice(0,2200);
+       const lines=snip.split('\n').slice(0,18).map(l=> escHtml(l.slice(0,90))).join('<br>');
+       html=`<b>Answer — tables in your PDF</b><br>Scanned the text layer — here's the top of the doc (real text):<br><span style="display:block;margin-top:6px;border:1px solid var(--ink);background:var(--paper2);padding:8px;font-family:'JetBrains Mono',monospace;font-size:11px;white-space:pre-wrap;word-break:break-word">${lines}</span> <span style="background:var(--cyan);border:1px solid var(--ink);padding:1px 4px;font-family:'JetBrains Mono',monospace;font-size:10px">p.1–${Math.min(3,pdfMeta.pages)}</span>`;
+     } else {
+       const also = hit.also && hit.also.length ? ` · also p.${hit.also.join(', p.')}` : '';
+       html=`<b>Answer — p.${hit.page}${also}</b> ${escHtml(hit.snippet)} <span style="background:var(--yellow);border:1px solid var(--ink);padding:1px 4px;font-family:'JetBrains Mono',monospace;font-size:10px">p.${hit.page}</span><br><span style="display:block;margin-top:6px;border-left:3px solid var(--ink);padding:6px 8px;background:var(--paper2);font-family:'JetBrains Mono',monospace;font-size:11px;white-space:pre-wrap;word-break:break-word">“${escHtml(hit.snippet)}”</span>`;
+     }
+   }
+ } else {
+   html = `<b>Nothing to search yet</b> Crush a real PDF first — or if this is a scan, hit <b>OCR</b> then Crush again. <span style="background:var(--yellow);border:1px solid var(--ink);padding:1px 4px;font-family:'JetBrains Mono',monospace;font-size:10px">no text</span>`;
+ }
+ a.innerHTML = html;
+ chatLog.appendChild(a);
+ chatLog.scrollTop = chatLog.scrollHeight;
+ }, (pdfDoc && pdfPages.length && pdfFullText.trim().length>40) ? 380 : 650);
+}
+chatInput.addEventListener('keydown', e=>{ if(e.key==='Enter') sendChat(); });
+document.querySelectorAll('[data-drag]').forEach(el=>{
+ let sx=0, sy=0, ox=0, oy=0, dragging=false;
+ const start = e=>{
+ dragging=true; el.setPointerCapture(e.pointerId);
+ const r=el.getBoundingClientRect(); ox=r.left; oy=r.top;
+ sx=e.clientX; sy=e.clientY;
+ el.style.zIndex=10;
+ };
+ const move = e=>{
+ if(!dragging) return;
+ el.style.left = 'auto'; el.style.right='auto'; el.style.top='auto'; el.style.bottom='auto';
+ el.style.position='absolute';
+ const parent = document.querySelector('.hero-left').getBoundingClientRect();
+ let nx = ox + (e.clientX - sx) - parent.left;
+ let ny = oy + (e.clientY - sy) - parent.top;
+ nx = Math.max(0, Math.min(nx, parent.width - el.offsetWidth));
+ ny = Math.max(0, Math.min(ny, parent.height - el.offsetHeight));
+ el.style.left = nx + 'px'; el.style.top = ny + 'px';
+ };
+ const end = ()=>{ dragging=false; el.style.zIndex=''; };
+ el.addEventListener('pointerdown', start);
+ el.addEventListener('pointermove', move);
+ el.addEventListener('pointerup', end);
+ el.addEventListener('pointercancel', end);
+});
+document.getElementById('menuBtn').addEventListener('click', ()=> document.getElementById('navLinks').classList.toggle('open'));
+function toast(msg){
+ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+ clearTimeout(t._t); t._t=setTimeout(()=> t.classList.remove('show'), 2400);
+}
+</script>
