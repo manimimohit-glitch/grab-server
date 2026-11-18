@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>SMART INDOOR NAV - Accessible Navigation for Blind People</title>
+  <meta name="description" content="AI-powered indoor navigation system for blind and visually impaired individuals using BLE positioning, computer vision, and voice guidance.">
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Optional TensorFlow.js for in-browser COCO-SSD object detection -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd" defer></script>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-navigation" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></symbol><symbol id="i-settings" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol><symbol id="i-admin" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol><symbol id="i-user" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></symbol><symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol><symbol id="i-camera" viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></symbol><symbol id="i-siren" viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></symbol><symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol><symbol id="i-pin" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></symbol><symbol id="i-left" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></symbol><symbol id="i-right" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol><symbol id="i-up" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></symbol><symbol id="i-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol><symbol id="i-elevator" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><polyline points="9 10 12 7 15 10"/><polyline points="9 14 12 17 15 14"/></symbol><symbol id="i-stairs" viewBox="0 0 24 24"><polyline points="3 20 8 20 8 15 13 15 13 10 18 10 18 5 21 5"/></symbol><symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></symbol><symbol id="i-door" viewBox="0 0 24 24"><path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17"/><path d="M3 21h18"/><circle cx="15" cy="12" r=".6"/></symbol><symbol id="i-volume" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></symbol><symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></symbol><symbol id="i-play" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></symbol><symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1"/></symbol><symbol id="i-repeat" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></symbol><symbol id="i-undo" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol><symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol><symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></symbol><symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol><symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></symbol><symbol id="i-flask" viewBox="0 0 24 24"><path d="M9 3h6"/><path d="M10 3v6L4 20a1 1 0 0 0 .9 1.5h14.2A1 1 0 0 0 20 20l-6-11V3"/></symbol><symbol id="i-cap" viewBox="0 0 24 24"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></symbol><symbol id="i-hospital" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol><symbol id="i-mail" viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/><polyline points="22 6 12 13 2 6"/></symbol><symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></symbol><symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol></svg>
+
+  <!-- Hidden ARIA Live region for screen readers (TalkBack / VoiceOver / NVDA) -->
+  <div id="screen-reader-live" class="sr-only" aria-live="assertive" aria-atomic="true"></div>
+
+  <div class="mobile-app-frame">
+
+    <!-- Top Sticky Navigation Bar -->
+    <header class="app-header" role="banner">
+      <div class="header-title-box">
+        <span class="header-logo-icon" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-navigation"/></svg></span>
+        <h1 class="header-title" data-i18n="appName">SMART INDOOR NAV</h1>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="header-btn" id="btn-quick-settings" data-navigate="screen-settings" aria-label="Settings"><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg></button>
+        <button class="header-btn" id="btn-quick-admin" data-admin-only data-navigate="screen-admin" aria-label="Admin Portal"><svg class="ic" aria-hidden="true"><use href="#i-admin"/></svg></button>
+      </div>
+    </header>
+
+    <main id="main-content" role="main">
+
+      <!-- ========================================== -->
+      <!-- SCREEN 1: SPLASH SCREEN                   -->
+      <!-- ========================================== -->
+      <section id="screen-splash" class="app-screen active" aria-label="Splash Screen">
+        <div class="splash-content">
+          <div class="radar-logo-container">
+            <div class="radar-ring"></div>
+            <div class="radar-ring"></div>
+            <div class="radar-ring"></div>
+            <span class="splash-icon"><svg class="ic" aria-hidden="true"><use href="#i-navigation"/></svg></span>
+          </div>
+          <h2 class="splash-title" data-i18n="appName">SMART INDOOR NAV</h2>
+          <p class="splash-tagline" data-i18n="tagline">Navigate Independently. Move Confidently.</p>
+          <button class="action-card card-primary" style="margin-top: 20px; justify-content: center;" data-navigate="screen-auth" aria-label="Get Started">
+            <span class="action-label" data-i18n="continue">Get Started</span><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SCREEN 2: REGISTRATION & LOGIN            -->
+      <!-- ========================================== -->
+      <section id="screen-auth" class="app-screen" aria-label="Sign in">
+        <div class="auth-wrap">
+          <h2 class="auth-title">Sign in to Smart Indoor Nav</h2>
+          <p class="auth-sub">Keep your language, voice speed and saved routes on every device.</p>
+          <div class="seg" role="tablist" aria-label="Account options">
+            <button type="button" class="seg-btn active" role="tab" aria-selected="true" data-auth-tab="login">Sign in</button>
+            <button type="button" class="seg-btn" role="tab" aria-selected="false" data-auth-tab="register">Create account</button>
+          </div>
+          <form id="auth-form" novalidate>
+            <div id="auth-name-row" hidden>
+              <label class="form-label" for="auth-name">Full name</label>
+              <input type="text" id="auth-name" class="form-input-accessible" autocomplete="name" maxlength="60">
+            </div>
+            <label class="form-label" for="auth-email">Email address</label>
+            <input type="email" id="auth-email" class="form-input-accessible" autocomplete="email" inputmode="email" placeholder="name@example.com">
+            <label class="form-label" for="auth-pass">Password</label>
+            <div class="pw-field">
+              <input type="password" id="auth-pass" class="form-input-accessible" autocomplete="current-password" placeholder="At least 8 characters">
+              <button type="button" id="auth-toggle-pw" class="pw-toggle" aria-label="Show password" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg></button>
+            </div>
+            <div id="auth-error" class="form-error" role="alert" hidden></div>
+            <button type="submit" id="auth-submit" class="action-card card-primary btn-center"><span id="auth-submit-label" class="action-label">Sign in</span></button>
+          </form>
+          <div class="divider"><span>or</span></div>
+          <button type="button" id="btn-guest" class="action-card btn-center"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg><span class="action-label" data-i18n="guestLogin">Continue as Guest</span></button>
+          <p class="privacy-note auth-note">Guests can use navigation, voice and camera features without an account.</p>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SCREEN 3: ACCESSIBILITY SETUP             -->
+      <!-- ========================================== -->
+      <section id="screen-accessibility-setup" class="app-screen" aria-label="Accessibility Setup">
+        <h2 style="font-size: 1.5rem; color: var(--accent-gold); margin-bottom: 12px;">Accessibility Setup</h2>
+        <p style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 15px;">
+          Personalize your audio speech, language, and tactile guidance preferences.
+        </p>
+
+        <label class="form-label">Preferred Language (భాష / भाषा)</label>
+        <div class="lang-selector-group">
+          <button class="lang-btn selected" data-lang="en">English</button>
+          <button class="lang-btn" data-lang="hi">हिंदी</button>
+          <button class="lang-btn" data-lang="te">తెలుగు</button>
+        </div>
+
+        <label class="form-label" for="setting-voice-rate" data-i18n="speechRate">Voice Speed</label>
+        <input type="range" id="setting-voice-rate" class="range-slider-accessible" min="0.7" max="1.4" step="0.1" value="1.0">
+
+        <div class="toggle-row">
+          <span style="font-weight: 700;" data-i18n="highContrast">High Contrast Theme</span>
+          <input type="checkbox" id="setting-high-contrast"  checked>
+        </div>
+
+        <div class="toggle-row">
+          <span style="font-weight: 700;" data-i18n="avoidStairs">Avoid Stairs (Elevator Mode)</span>
+          <input type="checkbox" id="setting-avoid-stairs"  checked>
+        </div>
+
+        <button class="nav-btn" style="width: 100%; margin-bottom: 12px;" onclick="window.voiceEngine.speak('This is an audio tutorial. Smart Indoor Nav guides you step by step. Tap the microphone to say your destination or emergency.')">
+          <svg class="ic" aria-hidden="true"><use href="#i-volume"/></svg> <span data-i18n="tutorial">Play Audio Tutorial</span>
+        </button>
+
+        <button class="action-card card-primary" style="justify-content: center;" onclick="window.app.showScreen('screen-home')">
+          <span class="action-label" data-i18n="save">Save & Start Navigating</span>
+        </button>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SCREEN 4: HOME DASHBOARD                  -->
+      <!-- ========================================== -->
+      <section id="screen-home" class="app-screen" aria-label="Home Dashboard">
+        
+        <!-- Active building & location badge -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <span class="active-building-name" style="font-weight: 800; font-size: 0.95rem; color: var(--accent-gold);">Apex Engineering College</span>
+          <button class="header-btn" style="padding: 6px 10px; font-size: 0.8rem;" data-navigate="screen-buildings">Change</button>
+        </div>
+
+        <div id="home-location-badge" class="location-badge" onclick="window.app.announceCurrentLocation()">
+          <svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg> Apex College Main Entrance (85% accuracy)
+        </div>
+
+        <!-- Hero Voice Microphone Section -->
+        <div class="voice-hero-section">
+          <button id="main-mic-button" class="mic-button-big" aria-label="Microphone Button. Click or double tap to give a voice command like: Take me to Computer Lab 205, or Emergency.">
+            <svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg>
+          </button>
+          <div id="voice-status-text" class="voice-status-text">Tap mic or speak destination</div>
+        </div>
+
+        <!-- Voice-First Action Cards (Master Prompt Screen 4) -->
+        <div class="dashboard-grid">
+          <button class="action-card card-primary" data-navigate="screen-destinations" aria-label="Find a Destination. Search classrooms, labs, offices, and restrooms.">
+            <span class="action-icon"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg></span>
+            <div>
+              <div class="action-label" data-i18n="findDest">Find a Destination</div>
+              <div class="action-sub">Search rooms, washrooms, labs</div>
+            </div>
+          </button>
+
+          <button class="action-card" data-navigate="screen-obstacle-detection" aria-label="Scan Surroundings using AI Camera">
+            <span class="action-icon"><svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg></span>
+            <div>
+              <div class="action-label" data-i18n="scanSurround">Scan Surroundings</div>
+              <div class="action-sub">AI vision camera detects chairs, people, stairs</div>
+            </div>
+          </button>
+
+          <button class="action-card card-emergency" onclick="window.app.triggerEmergencyMode()" aria-label="Emergency Mode. One tap emergency exit guidance.">
+            <span class="action-icon"><svg class="ic" aria-hidden="true"><use href="#i-siren"/></svg></span>
+            <div>
+              <div class="action-label" data-i18n="emergencyMode" style="color: #FF8A95;">Emergency Mode</div>
+              <div class="action-sub">Verified safe exit routing & siren</div>
+            </div>
+          </button>
+
+          <button class="action-card" onclick="window.app.announceCurrentLocation()" aria-label="My Location. Hear your current room and floor.">
+            <span class="action-icon"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg></span>
+            <div>
+              <div class="action-label" data-i18n="myLocation">My Location</div>
+              <div class="action-sub">Hear current room & floor</div>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SCREEN 5: BUILDING SELECTION              -->
+      <!-- ========================================== -->
+      <section id="screen-buildings" class="app-screen" aria-label="Building Selection">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+          <button class="header-btn" data-navigate="screen-home"><svg class="ic" aria-hidden="true"><use href="#i-left"/></svg> Back</button>
+          <h2 style="font-size: 1.4rem; color: var(--accent-gold);" data-i18n="buildings">Available Buildings</h2>
+        </div>
+        <div id="buildings-container">
+          <!-- Populated by app.js -->
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SCREEN 6: DESTINATION SELECTION           -->
+      <!-- ========================================== -->
+      <section id="screen-destinations" class="app-screen" aria-label="Destination Selection">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+          <button class="header-btn" data-navigate="screen-home"><svg class="ic" aria-hidden="true"><use href="#i-left"/></svg> Back</button>
+          <h2 style="font-size: 1.4rem; color: var(--accent-gold);" data-i18n="findDest">Find Destination</h2>
+        </div>
+
+        <input type="text" id="destination-search-input" class="form-input-accessible" placeholder="Type room (e.g. 205, Principal, Washroom)..." aria-label="Search destination by text">
+
+        <!-- Quick Filter Category Pills -->
+        <div class="chip-scroll">
+          <button class="btn-sim" onclick="window.app.filterDestinations('')">All</button>
+          <button class="btn-sim" onclick="window.app.filterDestinations('lab')"><svg class="ic" aria-hidden="true"><use href="#i-flask"/></svg> Labs</button>
+          <button class="btn-sim" onclick="window.app.filterDestinations('restroom')"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg> Restrooms</button>
+          <button class="btn-sim" onclick="window.app.filterDestinations('elevator')"><svg class="ic" aria-hidden="true"><use href="#i-elevator"/></svg> Elevator</button>
+          <button class="btn-sim" onclick="window.app.filterDestinations('library')"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg> Library</button>
+        </div>
+
+        <div id="destinations-container" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SCREEN 7: INDOOR NAVIGATION (PRIMARY)     -->
+      <!-- ========================================== -->
+      <section id="screen-navigation" class="app-screen" aria-label="Turn-by-turn Navigation Guidance">
+        
+        <!-- Target Destination Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <div>
+            <span style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase;">Destination</span>
+            <div id="nav-dest-name" style="font-weight: 800; font-size: 1.15rem; color: var(--accent-gold);">Computer Lab 205</div>
+          </div>
+          <span id="nav-step-progress" style="font-weight: 700; font-size: 0.9rem; color: var(--accent-cyan);">Step 1 of 6</span>
+        </div>
+
+        <!-- Giant Turn Direction Box -->
+        <div class="nav-direction-box" onclick="window.app.repeatCurrentInstruction()">
+          <div id="nav-turn-icon" class="turn-icon-giant"><svg class="ic" aria-hidden="true"><use href="#i-up"/></svg></div>
+          <div id="nav-instruction-text" class="nav-instruction-large">Walk straight for 15 meters toward Central Lobby.</div>
+          <div id="nav-distance-text" class="nav-meters-large">15m</div>
+        </div>
+
+        <!-- Navigation Action Buttons -->
+        <div class="nav-controls-row">
+          <button class="nav-btn" onclick="window.app.repeatCurrentInstruction()">
+            <svg class="ic" aria-hidden="true"><use href="#i-volume"/></svg> <span data-i18n="repeatInstruction">Repeat</span>
+          </button>
+          <button id="nav-pause-btn" class="nav-btn" onclick="window.app.isNavPaused ? window.app.resumeNavigation() : window.app.pauseNavigation()">
+            <svg class="ic" aria-hidden="true"><use href="#i-pause"/></svg> <span data-i18n="pause">Pause</span>
+          </button>
+        </div>
+
+        <!-- 2D Interactive Digital Map Visualizer -->
+        <div class="map-container">
+          <canvas id="nav-map-canvas" width="400" height="280"></canvas>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button class="nav-btn" style="flex: 1; border-color: var(--accent-gold);" onclick="window.app.showScreen('screen-obstacle-detection')">
+            <svg class="ic" aria-hidden="true"><use href="#i-camera"/></svg> Obstacle Camera
+          </button>
+          <button class="nav-btn" style="flex: 1; border-color: var(--accent-emergency);" onclick="window.app.showScreen('screen-home')">
+            <svg class="ic" aria-hidden="true"><use href="#i-stop"/></svg> <span data-i18n="cancelNav">End Route</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SCREEN 8: ADVANCED AI VISION & OCR CAMERA -->
+      <!-- ========================================== -->
+      <section id="screen-obstacle-detection" class="app-screen" aria-label="Advanced AI Vision and Text Reading Camera">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+          <button class="header-btn" data-navigate="screen-navigation"><svg class="ic" aria-hidden="true"><use href="#i-left"/></svg> Nav View</button>
+          <h2 style="font-size: 1.25rem; color: var(--accent-gold);">AI Vision & OCR</h2>
+        </div>
+
+        <!-- 3 Smart Camera Modes Selector (Section 7) -->
+        <div class="cam-modes-bar" role="tablist" aria-label="Smart Camera Modes">
+          <button class="cam-mode-btn active" data-mode="obstacle" role="tab" aria-selected="true">
+            <svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg> Obstacles
+          </button>
+          <button class="cam-mode-btn" data-mode="ocr" role="tab" aria-selected="false">
+            <svg class="ic" aria-hidden="true"><use href="#i-book-open"/></svg> Read Text (OCR)
+          </button>
+          <button class="cam-mode-btn" data-mode="environment" role="tab" aria-selected="false">
+            <svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg> Environment
+          </button>
+        </div>
+
+        <!-- Live Obstacle Warning Banner -->
+        <div id="obstacle-live-banner" class="obstacle-live-banner">
+          <svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg> Caution: Obstacle detected 1.6 meters ahead!
+        </div>
+
+        <!-- Live OCR Text Reading Card -->
+        <div id="ocr-live-text-banner" class="ocr-live-text-banner">
+          <svg class="ic" aria-hidden="true"><use href="#i-book-open"/></svg> Scanning for signboards, room numbers, and notices...
+        </div>
+
+        <!-- Video & AI Canvas Viewport -->
+        <div class="camera-view-container">
+          <video id="obstacle-video" playsinline autoplay muted></video>
+          <canvas id="obstacle-canvas" width="640" height="480"></canvas>
+<div class="vision-chips"><span class="chip" id="vision-status" data-kind="loading">Starting camera…</span><span class="chip" id="detect-count">Clear</span><span class="chip" id="vision-fps">0 FPS</span></div>
+<div class="vision-chips bottom"><span class="chip" id="adv-status" data-kind="info" style="display:none"></span></div>
+        </div>
+
+        <div class="toggle-row"><span><svg class="ic" aria-hidden="true"><use href="#i-zap"/></svg> Advanced AI (depth + indoor hazards)</span><input type="checkbox" id="adv-ai-toggle" aria-label="Advanced AI depth and hazard detection"></div>
+
+<!-- OCR Controls Row -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <button id="btn-ocr-read-now" class="btn-sim" style="flex: 1.2; font-weight: 800;">
+            <svg class="ic" aria-hidden="true"><use href="#i-book-open"/></svg> Read Sign Now
+          </button>
+          <button id="btn-ocr-repeat" class="btn-sim" style="flex: 1;">
+            <svg class="ic" aria-hidden="true"><use href="#i-repeat"/></svg> Repeat
+          </button>
+          <button id="btn-ocr-toggle" class="btn-sim" style="flex: 1;">
+            <svg class="ic" aria-hidden="true"><use href="#i-pause"/></svg> Pause
+          </button>
+        </div>
+
+        <!-- Scene Understanding Box -->
+        <div class="scene-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 0.85rem; font-weight: 800; color: var(--accent-cyan); text-transform: uppercase;">Scene Overview</span>
+            <button id="btn-describe-scene" class="header-btn" style="padding: 4px 8px; font-size: 0.75rem;"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> Describe Now</button>
+          </div>
+          <p id="scene-description-box" style="font-size: 0.95rem; line-height: 1.4; color: var(--text-primary);">
+            Point the camera forward to receive instant scene descriptions and spatial hazard warnings.
+          </p>
+        </div>
+
+        <!-- Spatial Quick Queries -->
+        <div class="quick-row">
+          <button class="btn-sim" onclick="window.app.checkObstacleDirectlyAhead()">
+            <svg class="ic" aria-hidden="true"><use href="#i-navigation"/></svg> Ahead?
+          </button>
+          <button class="btn-sim" onclick="window.app.describeSide('left')">
+            <svg class="ic" aria-hidden="true"><use href="#i-left"/></svg> On Left?
+          </button>
+          <button class="btn-sim" onclick="window.app.describeSide('right')">
+            <svg class="ic" aria-hidden="true"><use href="#i-right"/></svg> On Right?
+          </button>
+        </div>
+
+        <!-- Test Scene Simulator (Allows testing all 7 categories without webcam) -->
+        <label class="form-label" for="obstacle-scene-select">Demo scenes (test without a camera):</label>
+        <select id="obstacle-scene-select" class="form-input-accessible">
+<option value="live" selected>Live camera (real detection)</option>
+          <option value="chair_path">Furniture: Office Chair in Walking Path (1.6m)</option>
+          <option value="shoes_cable">Floor Items: Shoes & Exposed Cables on Floor (1.1m)</option>
+          <option value="dustbin_side">Floor Items: Dustbin on Left Corridor (1.4m)</option>
+          <option value="wet_floor">Hazard: Wet Floor Safety Area (1.8m)</option>
+          <option value="stairs">Structure: Staircase Flight Approaching (2.2m)</option>
+          <option value="person_approaching">Human: Person Approaching from Front (2.0m)</option>
+          <option value="door_open">Structure: Open Door with Sign 'Room 205' (2.8m)</option>
+          <option value="classroom_scene">Educational: Classroom with Desks, Chairs & Laptop (2.5m)</option>
+          <option value="emergency_sign">Safety Sign: Emergency Fire Exit Board (Ahead)</option>
+          <option value="unidentified_low">Unknown: Low Unidentified Obstacle in Path (1.0m)</option>
+        </select>
+
+        <p class="privacy-note">
+          <svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg> Privacy Guarantee: All AI vision and OCR processing runs strictly on-device. No camera footage is stored or transmitted.
+        </p>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SCREEN 9: EMERGENCY MODE                  -->
+      <!-- ========================================== -->
+      <section id="screen-emergency" class="app-screen" aria-label="Emergency Mode">
+        <div style="background-color: var(--accent-emergency); color: #FFF; padding: 18px; border-radius: 12px; text-align: center; margin-bottom: 15px;">
+          <div style="font-size: 48px;"><svg class="ic" aria-hidden="true"><use href="#i-siren"/></svg></div>
+          <h2 style="font-size: 1.7rem; font-weight: 900; margin-top: 5px;" data-i18n="emergencyMode">EMERGENCY MODE</h2>
+          <p id="emergency-route-guidance" style="font-size: 1.15rem; font-weight: 800; margin-top: 10px;">
+            North Emergency Fire Exit • 28 meters ahead.
+          </p>
+        </div>
+
+        <div class="nav-direction-box" style="border-color: #FF5A5F;">
+          <div class="turn-icon-giant"><svg class="ic" aria-hidden="true"><use href="#i-door"/></svg></div>
+          <div class="nav-instruction-large">Walk straight 28 meters to Ground Floor North Fire Exit.</div>
+          <div class="nav-meters-large">28m</div>
+        </div>
+
+        <div style="background-color: var(--bg-card); border-left: 4px solid var(--accent-gold); padding: 14px; margin-bottom: 15px; font-size: 0.85rem; color: var(--text-secondary);">
+          <strong style="color: var(--accent-gold);">Safety Notice:</strong> Follow official audible building announcements and trained emergency personnel. This system does not replace building fire alarms.
+        </div>
+
+        <button class="action-card" style="justify-content: center;" onclick="window.app.showScreen('screen-home')">
+          <span class="action-label">Dismiss Emergency</span>
+        </button>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- SCREEN 10: SETTINGS                       -->
+      <!-- ========================================== -->
+      <section id="screen-settings" class="app-screen" aria-label="Settings">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+          <button class="header-btn" data-navigate="screen-home"><svg class="ic" aria-hidden="true"><use href="#i-left"/></svg> Back</button>
+          <h2 style="font-size: 1.4rem; color: var(--accent-gold);" data-i18n="settings">Settings</h2>
+        </div>
+
+        <label class="form-label">Language / భాష / भाषा</label>
+        <div class="lang-selector-group">
+          <button class="lang-btn selected" data-lang="en">English</button>
+          <button class="lang-btn" data-lang="hi">हिंदी</button>
+          <button class="lang-btn" data-lang="te">తెలుగు</button>
+        </div>
+
+        <!-- Offline Map Caching (Solution 17) -->
+        <h3 style="font-size: 1.1rem; color: var(--accent-cyan); margin: 15px 0 8px 0;" data-i18n="offlineMaps">Offline Navigation Cache</h3>
+        <button class="action-card" onclick="window.app.loadBuilding('bld_college_01'); window.voiceEngine.speak('Apex Engineering College map downloaded and cached for 100% offline navigation.');">
+          <span class="action-icon"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg></span>
+          <div>
+            <div class="action-label">Apex College Map</div>
+            <div class="action-sub">Status: Cached & Ready Offline</div>
+          </div>
+        </button>
+        <button class="action-card" onclick="window.app.loadBuilding('bld_hospital_02'); window.voiceEngine.speak('CareCity Hospital map downloaded and cached for 100% offline navigation.');">
+          <span class="action-icon"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg></span>
+          <div>
+            <div class="action-label">CareCity Hospital Map</div>
+            <div class="action-sub">Status: Cached & Ready Offline</div>
+          </div>
+        </button>
+
+        <h3 style="font-size: 1.1rem; color: var(--accent-cyan); margin: 20px 0 8px 0;">Account</h3>
+        <div class="toggle-row"><span id="account-line">Guest session</span><button type="button" id="btn-signout" class="btn-sim"><svg class="ic" aria-hidden="true"><use href="#i-logout"/></svg> Sign out</button></div>
+        <h3 style="font-size: 1.1rem; color: var(--accent-cyan); margin: 20px 0 8px 0;">Developer</h3>
+<div class="toggle-row"><span>Show simulator controls</span><input type="checkbox" id="setting-show-sim"></div>
+<h3 style="font-size: 1.1rem; color: var(--accent-cyan); margin: 20px 0 8px 0;" data-admin-only>Administration</h3>
+        <button class="action-card" data-navigate="screen-admin" data-admin-only>
+          <span class="action-icon"><svg class="ic" aria-hidden="true"><use href="#i-admin"/></svg></span>
+          <div>
+            <div class="action-label" data-i18n="admin">Admin Dashboard</div>
+            <div class="action-sub">Toggle blocked paths & manage rooms</div>
+          </div>
+        </button>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- ADMIN DASHBOARD SCREEN                    -->
+      <!-- ========================================== -->
+      <section id="screen-admin" class="app-screen" aria-label="Administrator Dashboard">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+          <button class="header-btn" data-navigate="screen-home"><svg class="ic" aria-hidden="true"><use href="#i-left"/></svg> Back</button>
+          <h2 style="font-size: 1.4rem; color: var(--accent-gold);" data-i18n="admin">Facility Manager</h2>
+        </div>
+
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">
+          Toggle corridor or room blockage in real-time. Blocked paths are automatically avoided by the route engine!
+        </p>
+
+        <div id="admin-node-list">
+          <!-- Populated by app.js -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ========================================== -->
+    <!-- HARDWARE SIMULATION DOCK (TEST SUITE)      -->
+    <!-- Allows complete verification of all 20     -->
+    <!-- solutions right from the web browser!      -->
+    <!-- ========================================== -->
+    <aside class="simulation-dock" aria-label="Hardware Simulator Bar">
+      <div class="simulation-dock-header">
+        <span><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg> Simulator Controls</span>
+        <span style="font-size: 0.75rem; color: #FFF;">Test Beacon & Walk</span>
+      </div>
+      <div class="sim-buttons-grid">
+        <button class="btn-sim" onclick="window.app.advanceStep()" aria-label="Step forward along route">
+          <svg class="ic" aria-hidden="true"><use href="#i-up"/></svg> Step +
+        </button>
+        <button class="btn-sim" onclick="window.positioningClient.triggerSimulatedWrongTurn()" aria-label="Simulate wrong turn off route">
+          <svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg> Deviate
+        </button>
+        <button class="btn-sim" onclick="window.voiceEngine.playObstacleAlert(); window.voiceEngine.speak('Caution: Obstacle detected 1.5 meters ahead.', true);" aria-label="Simulate obstacle ahead">
+          <svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg> Obstacle
+        </button>
+        <button class="btn-sim btn-sim-alert" onclick="window.app.triggerEmergencyMode()" aria-label="Test Emergency Mode">
+          <svg class="ic" aria-hidden="true"><use href="#i-siren"/></svg> Exit
+        </button>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/auth.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/voice_engine.js"></script>
+  <script src="js/offline_store.js"></script>
+  <script src="js/positioning_client.js"></script>
+  <script src="js/ocr_engine.js"></script>
+  <script src="js/scene_understanding.js"></script>
+  <script src="js/vision_ai.js"></script>
+<script src="js/advanced_ai.js"></script>
+  <script src="js/map_renderer.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
